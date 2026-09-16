@@ -6,5 +6,6 @@ def test_active_elastic_four_bar() -> None:
 
     assert result["equality_constraints"] == 4
     assert result["measured_extension_mm"] == 40.0
+    assert result["minimum_rod_insertion_mm"] == 30.0
     assert result["passive_return_extension_mm"] == 0.0
     assert result["passive_force_at_20_mm_n"] == -30.0

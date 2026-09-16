@@ -8,8 +8,8 @@ mechanism while retaining the x-z compliant hip carrier.
 - Four load-bearing links per leg, each 190 mm between pivots
 - Nominal knee-to-knee crossbar length: 150 mm
 - Nominal hip-to-wheel distance: 348 mm
-- Crossbar extension range: ±60 mm
-- Geometric hip-to-wheel range: approximately 317–369 mm
+- Crossbar extension range: ±40 mm
+- Geometric hip-to-wheel range: approximately 328–364 mm
 
 The orange branch owns the wheel body. The blue branch closes onto the same
 bottom pivot through a three-dimensional `equality/connect` constraint. A
@@ -28,7 +28,8 @@ Each crossbar is represented by two rigid telescopic bodies:
 | Position-servo stiffness | 2500 N/m |
 | Position-servo damping | 45 N·s/m |
 | Actuator force limit | ±250 N |
-| Physical slide range | ±60 mm |
+| Physical slide range | ±40 mm |
+| Minimum rod insertion | 30 mm |
 
 A 20 mm passive displacement produces a 30 N restoring force. The actuator
 can push and pull; it is not modeled as a tension-only cable.
@@ -36,11 +37,17 @@ can push and pull; it is not modeled as a tension-only cable.
 Because the passive spring also pulls toward zero, a desired physical
 extension `q_des` needs the static feed-forward command
 `ctrl = (1 + k_spring / k_servo) * q_des = 1.6 * q_des`.
-The actuator control range is therefore ±96 mm while the mechanical joint
-remains limited to ±60 mm.
+The actuator control range is therefore ±64 mm while the mechanical joint
+remains limited to ±40 mm.
 
 Positive crossbar extension widens the diamond and shortens the leg. Negative
 extension narrows it and lengthens the leg.
+
+The outer sleeve is 110 mm long. The visible inner rod starts 30 mm behind
+its body origin, so it overlaps the sleeve by 70 mm at neutral and 30 mm at
+maximum extension. The MuJoCo slide joint is connected for its full range
+regardless of visual geometry, while this overlap constraint also keeps the
+model mechanically realizable.
 
 ## Mass and scope
 

@@ -90,6 +90,20 @@ def verify() -> dict[str, object]:
     shortened_height = _leg_height(model, data, "left")
     assert np.allclose(active_extensions, desired_extension, atol=2e-4)
     assert neutral_height - shortened_height > 0.015
+    left_strut_joint_id = _object_id(
+        model, mujoco.mjtObj.mjOBJ_JOINT, "left_strut_extension"
+    )
+    assert np.allclose(model.jnt_range[left_strut_joint_id], (-0.040, 0.040))
+    sleeve_end_id = _object_id(
+        model, mujoco.mjtObj.mjOBJ_SITE, "left_strut_sleeve_end"
+    )
+    rod_rear_id = _object_id(
+        model, mujoco.mjtObj.mjOBJ_SITE, "left_strut_rod_rear"
+    )
+    minimum_insertion = float(
+        np.linalg.norm(data.site_xpos[sleeve_end_id] - data.site_xpos[rod_rear_id])
+    )
+    assert math.isclose(minimum_insertion, 0.030, abs_tol=2e-4)
 
     # Remove all active strut force; only the physical spring and damper remain.
     _disable_strut_servos(model)
@@ -148,6 +162,7 @@ def verify() -> dict[str, object]:
         "commanded_extension_mm": round(desired_extension * 1000, 2),
         "measured_extension_mm": round(float(active_extensions[0]) * 1000, 2),
         "shortened_leg_height_mm": round(shortened_height * 1000, 2),
+        "minimum_rod_insertion_mm": round(minimum_insertion * 1000, 2),
         "passive_return_extension_mm": round(
             float(passive_return_extensions[0]) * 1000, 4
         ),
