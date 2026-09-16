@@ -1,0 +1,74 @@
+{
+  "generator": "scripts/generate_terrains.py",
+  "grid": {
+    "columns": 801,
+    "rows": 161
+  },
+  "length_m": 20.0,
+  "terrains": {
+    "easy": {
+      "metrics": {
+        "flat_launch_end_x_m": -7.2,
+        "lateral_resolution_m": 0.02499999999999991,
+        "longitudinal_resolution_m": 0.025000000000000355,
+        "maximum_height_m": 0.015,
+        "maximum_slope_deg": 1.1844306198609005,
+        "minimum_height_m": -0.011133861043957964,
+        "rms_height_m": 0.00504057951725647,
+        "rough_section_end_x_m": 7.8,
+        "rough_section_start_x_m": -5.8
+      },
+      "specification": {
+        "amplitude_m": 0.015,
+        "bump_count": 2,
+        "bump_width_m": 0.32,
+        "correlation_length_m": 0.6,
+        "name": "easy",
+        "seed": 1201
+      }
+    },
+    "hard": {
+      "metrics": {
+        "flat_launch_end_x_m": -7.2,
+        "lateral_resolution_m": 0.02499999999999991,
+        "longitudinal_resolution_m": 0.025000000000000355,
+        "maximum_height_m": 0.07400482426644188,
+        "maximum_slope_deg": 17.927185964177347,
+        "minimum_height_m": -0.075,
+        "rms_height_m": 0.030907938010012567,
+        "rough_section_end_x_m": 7.8,
+        "rough_section_start_x_m": -5.8
+      },
+      "specification": {
+        "amplitude_m": 0.075,
+        "bump_count": 12,
+        "bump_width_m": 0.15,
+        "correlation_length_m": 0.22,
+        "name": "hard",
+        "seed": 3403
+      }
+    },
+    "medium": {
+      "metrics": {
+        "flat_launch_end_x_m": -7.2,
+        "lateral_resolution_m": 0.02499999999999991,
+        "longitudinal_resolution_m": 0.025000000000000355,
+        "maximum_height_m": 0.021049639610972504,
+        "maximum_slope_deg": 4.858256161620046,
+        "minimum_height_m": -0.04,
+        "rms_height_m": 0.013572501448099721,
+        "rough_section_end_x_m": 7.8,
+        "rough_section_start_x_m": -5.8
+      },
+      "specification": {
+        "amplitude_m": 0.04,
+        "bump_count": 6,
+        "bump_width_m": 0.22,
+        "correlation_length_m": 0.36,
+        "name": "medium",
+        "seed": 2302
+      }
+    }
+  },
+  "width_m": 4.0
+}
