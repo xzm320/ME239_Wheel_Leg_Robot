@@ -1,0 +1,21 @@
+<mujoco model="environment_smoke">
+  <compiler angle="radian"/>
+  <option timestep="0.002" integrator="implicitfast"/>
+
+  <visual>
+    <global offwidth="640" offheight="480"/>
+    <headlight ambient="0.35 0.35 0.35" diffuse="0.65 0.65 0.65"/>
+  </visual>
+
+  <worldbody>
+    <light pos="0 -2 3" dir="0 1 -1"/>
+    <camera name="verification" pos="2.2 -2.2 1.6" xyaxes="0.707 0.707 0 -0.408 0.408 0.816"/>
+    <geom name="ground" type="plane" size="3 3 0.1" rgba="0.25 0.3 0.35 1"/>
+
+    <body name="drop_test_body" pos="0 0 1">
+      <freejoint/>
+      <geom type="box" size="0.16 0.12 0.1" mass="1"
+            rgba="0.9 0.35 0.1 1" friction="1 0.01 0.001"/>
+    </body>
+  </worldbody>
+</mujoco>
