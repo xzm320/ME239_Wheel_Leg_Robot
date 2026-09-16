@@ -72,6 +72,20 @@ def verify() -> dict[str, object]:
     data = mujoco.MjData(model)
     data.qpos[:7] = (0.0, 0.0, 0.343, 1.0, 0.0, 0.0, 0.0)
     mujoco.mj_forward(model, data)
+    slide_qpos_addresses = [
+        _addresses(model, joint_name)[1] for joint_name in SLIDE_PARAMETERS
+    ]
+    peak_slide_displacement = 0.0
+    max_contacts = 0
+    for _ in range(round(0.5 / model.opt.timestep)):
+        data.ctrl[:] = 0.0
+        mujoco.mj_step(model, data)
+        peak_slide_displacement = max(
+            peak_slide_displacement,
+            float(np.max(np.abs(data.qpos[slide_qpos_addresses]))),
+        )
+        max_contacts = max(max_contacts, data.ncon)
+
     with mujoco.Renderer(model, height=240, width=320) as renderer:
         renderer.update_scene(data)
         pixels = renderer.render()
@@ -79,6 +93,10 @@ def verify() -> dict[str, object]:
     total_mass = float(np.sum(model.body_mass))
     assert (model.nq, model.nv, model.nu) == (17, 16, 6)
     assert math.isclose(total_mass, 5.6205, abs_tol=1e-6)
+    assert np.isfinite(data.qpos).all()
+    assert max_contacts > 0
+    assert peak_slide_displacement < 0.005
+    assert data.qpos[2] > 0.3
     assert pixels.shape == (240, 320, 3)
     assert np.std(pixels) > 1.0
 
@@ -90,6 +108,10 @@ def verify() -> dict[str, object]:
         "total_mass_kg": round(total_mass, 4),
         "passive_slide_count": len(SLIDE_PARAMETERS),
         "forces": measured_forces,
+        "contact_simulated_seconds": round(float(data.time), 3),
+        "max_contacts": int(max_contacts),
+        "peak_passive_displacement_mm": round(peak_slide_displacement * 1000, 3),
+        "trunk_height_m": round(float(data.qpos[2]), 4),
         "render_std": round(float(np.std(pixels)), 3),
     }
 
