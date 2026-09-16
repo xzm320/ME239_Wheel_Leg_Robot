@@ -1,0 +1,208 @@
+#!/usr/bin/env python3
+"""Generate deterministic graded heightfields and MuJoCo scenes."""
+
+from __future__ import annotations
+
+import json
+import math
+import struct
+import zlib
+from dataclasses import asdict, dataclass
+from pathlib import Path
+
+import numpy as np
+
+ROOT = Path(__file__).resolve().parents[1]
+OUTPUT_DIRECTORY = ROOT / "models" / "upkie" / "terrain"
+LENGTH_M = 20.0
+WIDTH_M = 4.0
+NX = 801
+NY = 161
+
+
+@dataclass(frozen=True)
+class TerrainSpec:
+    name: str
+    seed: int
+    amplitude_m: float
+    correlation_length_m: float
+    bump_count: int
+    bump_width_m: float
+
+
+SPECS = (
+    TerrainSpec("easy", 1201, 0.015, 0.60, 2, 0.32),
+    TerrainSpec("medium", 2302, 0.040, 0.36, 6, 0.22),
+    TerrainSpec("hard", 3403, 0.075, 0.22, 12, 0.15),
+)
+
+
+def _smooth_noise(
+    rng: np.random.Generator, sample_count: int, sigma_samples: float
+) -> np.ndarray:
+    radius = max(2, round(4.0 * sigma_samples))
+    positions = np.arange(-radius, radius + 1)
+    kernel = np.exp(-0.5 * (positions / sigma_samples) ** 2)
+    kernel /= np.sum(kernel)
+    padding = radius
+    noise = rng.normal(size=sample_count + 2 * padding)
+    filtered = np.convolve(noise, kernel, mode="same")
+    result = filtered[padding:-padding]
+    result -= np.mean(result)
+    result /= max(float(np.std(result)), 1e-9)
+    return result
+
+
+def generate_heightfield(spec: TerrainSpec) -> tuple[np.ndarray, dict[str, float]]:
+    rng = np.random.default_rng(spec.seed)
+    x = np.linspace(-LENGTH_M / 2, LENGTH_M / 2, NX)
+    y = np.linspace(-WIDTH_M / 2, WIDTH_M / 2, NY)
+    dx = float(x[1] - x[0])
+    dy = float(y[1] - y[0])
+    sigma_samples = spec.correlation_length_m / dx
+
+    longitudinal = _smooth_noise(rng, NX, sigma_samples)
+    secondary = _smooth_noise(rng, NX, sigma_samples * 0.65)
+    lateral_phase = rng.uniform(0.0, 2.0 * math.pi)
+    roughness = (
+        longitudinal[np.newaxis, :]
+        * (1.0 + 0.16 * np.sin(2.0 * math.pi * y[:, np.newaxis] / WIDTH_M + lateral_phase))
+        + 0.22
+        * secondary[np.newaxis, :]
+        * np.sin(4.0 * math.pi * y[:, np.newaxis] / WIDTH_M + lateral_phase)
+    )
+
+    grid_y, grid_x = np.meshgrid(y, x, indexing="ij")
+    for _ in range(spec.bump_count):
+        center_x = rng.uniform(-4.8, 7.5)
+        center_y = rng.uniform(-1.35, 1.35)
+        bump_height = rng.uniform(-1.0, 1.0)
+        width_x = spec.bump_width_m * rng.uniform(0.8, 1.5)
+        width_y = spec.bump_width_m * rng.uniform(0.8, 1.8)
+        roughness += bump_height * np.exp(
+            -0.5
+            * (
+                ((grid_x - center_x) / width_x) ** 2
+                + ((grid_y - center_y) / width_y) ** 2
+            )
+        )
+
+    # Flat launch and braking zones with cosine transitions.
+    envelope = np.ones_like(x)
+    envelope[x <= -7.2] = 0.0
+    launch_transition = (x > -7.2) & (x < -5.8)
+    launch_ratio = (x[launch_transition] + 7.2) / 1.4
+    envelope[launch_transition] = 0.5 - 0.5 * np.cos(math.pi * launch_ratio)
+    envelope[x >= 9.2] = 0.0
+    finish_transition = (x > 7.8) & (x < 9.2)
+    finish_ratio = (x[finish_transition] - 7.8) / 1.4
+    envelope[finish_transition] = 0.5 + 0.5 * np.cos(math.pi * finish_ratio)
+    roughness *= envelope[np.newaxis, :]
+
+    active = (x >= -5.8) & (x <= 7.8)
+    active_peak = float(np.max(np.abs(roughness[:, active])))
+    roughness *= spec.amplitude_m / max(active_peak, 1e-9)
+    roughness = np.clip(roughness, -spec.amplitude_m, spec.amplitude_m)
+
+    slope_y, slope_x = np.gradient(roughness, dy, dx)
+    active_values = roughness[:, active]
+    active_slopes = np.hypot(slope_x[:, active], slope_y[:, active])
+    metrics = {
+        "minimum_height_m": float(np.min(active_values)),
+        "maximum_height_m": float(np.max(active_values)),
+        "rms_height_m": float(np.sqrt(np.mean(active_values**2))),
+        "maximum_slope_deg": float(np.degrees(np.arctan(np.max(active_slopes)))),
+        "longitudinal_resolution_m": dx,
+        "lateral_resolution_m": dy,
+        "flat_launch_end_x_m": -7.2,
+        "rough_section_start_x_m": -5.8,
+        "rough_section_end_x_m": 7.8,
+    }
+    return roughness, metrics
+
+
+def _write_grayscale_png(path: Path, values: np.ndarray) -> None:
+    image = np.asarray(np.round(values), dtype=np.uint8)
+    height, width = image.shape
+    scanlines = b"".join(b"\x00" + row.tobytes() for row in image)
+
+    def chunk(kind: bytes, data: bytes) -> bytes:
+        return (
+            struct.pack(">I", len(data))
+            + kind
+            + data
+            + struct.pack(">I", zlib.crc32(kind + data) & 0xFFFFFFFF)
+        )
+
+    payload = b"\x89PNG\r\n\x1a\n"
+    payload += chunk(
+        b"IHDR", struct.pack(">IIBBBBB", width, height, 8, 0, 0, 0, 0)
+    )
+    payload += chunk(b"IDAT", zlib.compress(scanlines, level=9))
+    payload += chunk(b"IEND", b"")
+    path.write_bytes(payload)
+
+
+def _scene_xml(spec: TerrainSpec) -> str:
+    vertical_scale = 2.0 * spec.amplitude_m
+    return f"""<!-- Deterministically generated by scripts/generate_terrains.py. -->
+<mujoco model="upkie_{spec.name}_terrain">
+  <include file="../four_bar/robot.xml"/>
+  <visual>
+    <headlight diffuse="0.7 0.7 0.7" ambient="0.35 0.35 0.35"/>
+    <rgba haze="0.14 0.20 0.28 1"/>
+    <global offwidth="960" offheight="540" azimuth="120" elevation="-18"/>
+  </visual>
+  <asset>
+    <hfield name="{spec.name}_heightfield" file="heightfields/{spec.name}.png"
+            size="{LENGTH_M / 2:.3f} {WIDTH_M / 2:.3f} {vertical_scale:.5f} 0.10"/>
+    <texture type="skybox" builtin="gradient" rgb1="0.38 0.52 0.70"
+             rgb2="0.04 0.05 0.07" width="512" height="3072"/>
+    <texture type="2d" name="{spec.name}_grid" builtin="checker" mark="edge"
+             rgb1="0.26 0.30 0.22" rgb2="0.12 0.16 0.11"
+             markrgb="0.75 0.80 0.65" width="512" height="512"/>
+    <material name="{spec.name}_ground" texture="{spec.name}_grid"
+              texuniform="true" texrepeat="20 4" reflectance="0.08"/>
+  </asset>
+  <worldbody>
+    <light pos="-2 -2 4" dir="0.2 0.2 -1" directional="true"/>
+    <geom name="terrain" type="hfield" hfield="{spec.name}_heightfield"
+          pos="0 0 {-spec.amplitude_m:.5f}" material="{spec.name}_ground"
+          friction="1.1 0.02 0.002" condim="3"/>
+  </worldbody>
+</mujoco>
+"""
+
+
+def generate_all() -> dict[str, object]:
+    heightfield_directory = OUTPUT_DIRECTORY / "heightfields"
+    heightfield_directory.mkdir(parents=True, exist_ok=True)
+    metadata: dict[str, object] = {
+        "generator": "scripts/generate_terrains.py",
+        "length_m": LENGTH_M,
+        "width_m": WIDTH_M,
+        "grid": {"columns": NX, "rows": NY},
+        "terrains": {},
+    }
+
+    for spec in SPECS:
+        heights, metrics = generate_heightfield(spec)
+        encoded = (heights / (2.0 * spec.amplitude_m) + 0.5) * 255.0
+        _write_grayscale_png(heightfield_directory / f"{spec.name}.png", encoded)
+        (OUTPUT_DIRECTORY / f"scene_{spec.name}.xml").write_text(
+            _scene_xml(spec), encoding="utf-8"
+        )
+        metadata["terrains"][spec.name] = {
+            "specification": asdict(spec),
+            "metrics": metrics,
+        }
+
+    metadata_path = OUTPUT_DIRECTORY / "metadata.json"
+    metadata_path.write_text(
+        json.dumps(metadata, indent=2, sort_keys=True) + "\n", encoding="utf-8"
+    )
+    return metadata
+
+
+if __name__ == "__main__":
+    print(json.dumps(generate_all(), indent=2))
