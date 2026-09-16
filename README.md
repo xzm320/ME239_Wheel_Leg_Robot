@@ -1,6 +1,6 @@
 # 高速崎岖地面轮腿机器人 MuJoCo 平台
 
-本项目用于研究高速运行条件下的轮腿机器人机械结构、崎岖地形适应与控制。当前完成第 1 阶段：可复现的 MuJoCo 仿真环境和物理/渲染自检。
+本项目用于研究高速运行条件下的轮腿机器人机械结构、崎岖地形适应与控制。当前已建立可复现环境，并导入未经修改的 Upkie 基线模型。
 
 ## 环境
 
@@ -22,6 +22,7 @@ sudo apt-get install -y libegl1 libgl1 libglfw3 libosmesa6
 curl -LsSf https://astral.sh/uv/install.sh | sh
 uv sync --frozen
 uv run python scripts/verify_mujoco.py
+uv run python scripts/verify_upkie_baseline.py
 uv run pytest
 ```
 
@@ -30,14 +31,18 @@ uv run pytest
 若本机有图形桌面，可打开交互查看器：
 
 ```bash
-uv run python -m mujoco.viewer --mjcf models/environment_smoke.xml
+uv run python -m mujoco.viewer --mjcf models/upkie/upstream/scene.xml
 ```
+
+## 原型基线
+
+选定的原型是约 5.46 kg 的双轮腿 [Upkie](https://github.com/upkie/upkie)。项目固定引入了 [MjLab Upkie](https://github.com/MarcDcls/mjlab_upkie) 的 Apache-2.0 MJCF 变体；来源版本、许可和模型性质见 `models/upkie/UPSTREAM.md`。`models/upkie/upstream/` 保持不修改，后续机械改型将存放在独立目录中。
 
 ## 分阶段计划
 
-1. MuJoCo 环境与自检（当前阶段）
-2. 调研并筛选许可证、模型质量和结构均合适的开源轮腿机器人原型
-3. 建立可在水平面内柔顺位移并具有向心恢复力的髋关节
+1. MuJoCo 环境与自检（已完成）
+2. 筛选并集成 Upkie 原型基线（当前阶段）
+3. 建立在前后 x、垂向 z 两个方向具有线性回中力的柔顺髋座
 4. 将轮腿改为带主动伸缩、被动弹性横杆的四连杆机构
 5. 构建参数化崎岖路面与分级测试场景
 6. 建立控制器、参数辨识和高速运行调参/评估流程
