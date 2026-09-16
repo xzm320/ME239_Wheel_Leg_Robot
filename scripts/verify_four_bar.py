@@ -1,0 +1,158 @@
+#!/usr/bin/env python3
+"""Verify closed-chain geometry and active/passive telescopic behavior."""
+
+from __future__ import annotations
+
+import json
+import math
+import os
+from pathlib import Path
+
+os.environ.setdefault("MUJOCO_GL", "osmesa")
+
+import mujoco
+import numpy as np
+
+MODEL_PATH = (
+    Path(__file__).resolve().parents[1]
+    / "models"
+    / "upkie"
+    / "four_bar"
+    / "scene.xml"
+)
+STRUT_JOINTS = ("left_strut_extension", "right_strut_extension")
+STRUT_ACTUATORS = ("left_strut", "right_strut")
+
+
+def _object_id(model: mujoco.MjModel, object_type: int, name: str) -> int:
+    object_id = mujoco.mj_name2id(model, object_type, name)
+    assert object_id >= 0, f"missing MuJoCo object: {name}"
+    return object_id
+
+
+def _joint_qpos_address(model: mujoco.MjModel, name: str) -> int:
+    joint_id = _object_id(model, mujoco.mjtObj.mjOBJ_JOINT, name)
+    return int(model.jnt_qposadr[joint_id])
+
+
+def _leg_height(model: mujoco.MjModel, data: mujoco.MjData, side: str) -> float:
+    hip_id = _object_id(model, mujoco.mjtObj.mjOBJ_SITE, f"{side}_hip_origin")
+    wheel_id = _object_id(model, mujoco.mjtObj.mjOBJ_BODY, f"{side}_wheel_node")
+    return float(data.site_xpos[hip_id, 2] - data.xpos[wheel_id, 2])
+
+
+def _disable_strut_servos(model: mujoco.MjModel) -> None:
+    for actuator_name in STRUT_ACTUATORS:
+        actuator_id = _object_id(
+            model, mujoco.mjtObj.mjOBJ_ACTUATOR, actuator_name
+        )
+        model.actuator_gainprm[actuator_id, :] = 0.0
+        model.actuator_biasprm[actuator_id, :] = 0.0
+
+
+def verify() -> dict[str, object]:
+    model = mujoco.MjModel.from_xml_path(str(MODEL_PATH))
+    total_mass = float(np.sum(model.body_mass))
+    assert (model.nq, model.nv, model.nu, model.neq) == (27, 26, 6, 4)
+    assert math.isclose(total_mass, 5.6185, abs_tol=1e-6)
+
+    # Bench test without gravity or contacts: command both telescopic crossbars.
+    model.opt.gravity[:] = 0.0
+    data = mujoco.MjData(model)
+    data.qpos[:7] = (0.0, 0.0, 0.8, 1.0, 0.0, 0.0, 0.0)
+    mujoco.mj_forward(model, data)
+    neutral_height = _leg_height(model, data, "left")
+
+    desired_extension = 0.040
+    feedforward_command = desired_extension * (1.0 + 1500.0 / 2500.0)
+    for actuator_name in STRUT_ACTUATORS:
+        actuator_id = _object_id(
+            model, mujoco.mjtObj.mjOBJ_ACTUATOR, actuator_name
+        )
+        data.ctrl[actuator_id] = feedforward_command
+
+    max_closure_error = 0.0
+    for _ in range(round(1.2 / model.opt.timestep)):
+        mujoco.mj_step(model, data)
+        max_closure_error = max(
+            max_closure_error, float(np.max(np.abs(data.efc_pos[:12])))
+        )
+
+    qpos_addresses = [
+        _joint_qpos_address(model, joint_name) for joint_name in STRUT_JOINTS
+    ]
+    active_extensions = data.qpos[qpos_addresses].copy()
+    shortened_height = _leg_height(model, data, "left")
+    assert np.allclose(active_extensions, desired_extension, atol=2e-4)
+    assert neutral_height - shortened_height > 0.015
+
+    # Remove all active strut force; only the physical spring and damper remain.
+    _disable_strut_servos(model)
+    data.ctrl[:] = 0.0
+    for _ in range(round(1.2 / model.opt.timestep)):
+        mujoco.mj_step(model, data)
+        max_closure_error = max(
+            max_closure_error, float(np.max(np.abs(data.efc_pos[:12])))
+        )
+
+    passive_return_extensions = data.qpos[qpos_addresses].copy()
+    returned_height = _leg_height(model, data, "left")
+    assert np.max(np.abs(passive_return_extensions)) < 1e-4
+    assert math.isclose(returned_height, neutral_height, abs_tol=2e-4)
+    assert max_closure_error < 1e-4
+    assert np.isfinite(data.qpos).all()
+
+    # Verify the passive force directly at 20 mm extension.
+    force_data = mujoco.MjData(model)
+    left_joint_id = _object_id(
+        model, mujoco.mjtObj.mjOBJ_JOINT, "left_strut_extension"
+    )
+    left_qpos_address = int(model.jnt_qposadr[left_joint_id])
+    left_dof_address = int(model.jnt_dofadr[left_joint_id])
+    force_data.qpos[left_qpos_address] = 0.020
+    mujoco.mj_forward(model, force_data)
+    passive_force = float(force_data.qfrc_passive[left_dof_address])
+    assert math.isclose(passive_force, -30.0, abs_tol=1e-9)
+
+    # Restore a gravity-loaded model and check wheel contact stability.
+    contact_model = mujoco.MjModel.from_xml_path(str(MODEL_PATH))
+    contact_data = mujoco.MjData(contact_model)
+    contact_data.qpos[:7] = (0.0, 0.0, 0.343, 1.0, 0.0, 0.0, 0.0)
+    max_contacts = 0
+    for _ in range(round(0.5 / contact_model.opt.timestep)):
+        mujoco.mj_step(contact_model, contact_data)
+        max_contacts = max(max_contacts, contact_data.ncon)
+    assert max_contacts > 0
+    assert contact_data.qpos[2] > 0.3
+    assert np.isfinite(contact_data.qpos).all()
+
+    with mujoco.Renderer(contact_model, height=360, width=480) as renderer:
+        renderer.update_scene(contact_data)
+        pixels = renderer.render()
+    assert pixels.shape == (360, 480, 3)
+    assert np.std(pixels) > 1.0
+
+    return {
+        "mujoco_version": mujoco.__version__,
+        "nq": model.nq,
+        "nv": model.nv,
+        "nu": model.nu,
+        "equality_constraints": model.neq,
+        "total_mass_kg": round(total_mass, 4),
+        "neutral_leg_height_mm": round(neutral_height * 1000, 2),
+        "commanded_extension_mm": round(desired_extension * 1000, 2),
+        "measured_extension_mm": round(float(active_extensions[0]) * 1000, 2),
+        "shortened_leg_height_mm": round(shortened_height * 1000, 2),
+        "passive_return_extension_mm": round(
+            float(passive_return_extensions[0]) * 1000, 4
+        ),
+        "passive_force_at_20_mm_n": round(passive_force, 2),
+        "max_closure_error_mm": round(max_closure_error * 1000, 4),
+        "gravity_test_contacts": int(max_contacts),
+        "gravity_test_trunk_height_m": round(float(contact_data.qpos[2]), 4),
+        "render_std": round(float(np.std(pixels)), 3),
+    }
+
+
+if __name__ == "__main__":
+    print(json.dumps(verify(), indent=2))
