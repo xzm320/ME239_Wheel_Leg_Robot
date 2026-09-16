@@ -30,6 +30,12 @@ uv run pytest
 
 验证脚本会加载 `models/environment_smoke.xml`，让刚体自由落体并与地面接触，然后通过 OSMesa 生成一帧无界面图像。它同时检查数值稳定性、接触检测和渲染输出。
 
+生成四连杆主动伸缩和被动回弹的图片/视频：
+
+```bash
+uv run python scripts/render_four_bar_demo.py
+```
+
 若本机有图形桌面，可打开交互查看器：
 
 ```bash
