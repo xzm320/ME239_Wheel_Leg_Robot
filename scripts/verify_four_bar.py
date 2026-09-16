@@ -64,15 +64,20 @@ def verify() -> dict[str, object]:
     neutral_height = _leg_height(model, data, "left")
 
     desired_extension = 0.040
-    feedforward_command = desired_extension * (1.0 + 1500.0 / 2500.0)
-    for actuator_name in STRUT_ACTUATORS:
-        actuator_id = _object_id(
-            model, mujoco.mjtObj.mjOBJ_ACTUATOR, actuator_name
-        )
-        data.ctrl[actuator_id] = feedforward_command
+    actuator_ids = [
+        _object_id(model, mujoco.mjtObj.mjOBJ_ACTUATOR, actuator_name)
+        for actuator_name in STRUT_ACTUATORS
+    ]
 
     max_closure_error = 0.0
-    for _ in range(round(1.2 / model.opt.timestep)):
+    for step in range(round(1.2 / model.opt.timestep)):
+        # A half-cosine ramp avoids injecting an unrealistic command step.
+        ramp_ratio = min(step * model.opt.timestep / 0.4, 1.0)
+        ramp = 0.5 - 0.5 * math.cos(math.pi * ramp_ratio)
+        feedforward_command = (
+            desired_extension * ramp * (1.0 + 1500.0 / 2500.0)
+        )
+        data.ctrl[actuator_ids] = feedforward_command
         mujoco.mj_step(model, data)
         max_closure_error = max(
             max_closure_error, float(np.max(np.abs(data.efc_pos[:12])))
