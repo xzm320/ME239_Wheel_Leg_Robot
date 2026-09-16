@@ -65,8 +65,8 @@ def render(output_directory: Path) -> tuple[Path, Path]:
         raise RuntimeError("ffmpeg is required to encode the demonstration")
 
     output_directory.mkdir(parents=True, exist_ok=True)
-    video_path = output_directory / "four_bar_active_passive_demo.mp4"
-    states_path = output_directory / "four_bar_three_states.png"
+    video_path = output_directory / "four_bar_active_passive_demo_v2.mp4"
+    states_path = output_directory / "four_bar_three_states_v2.png"
 
     model = mujoco.MjModel.from_xml_path(str(MODEL_PATH))
     model.opt.gravity[:] = 0.0
@@ -168,8 +168,8 @@ def render(output_directory: Path) -> tuple[Path, Path]:
 
         labels = {
             "neutral": "NEUTRAL - 348 mm",
-            "shortened": "ACTIVE SHORTEN - 329 mm",
-            "extended": "ACTIVE EXTEND - 364 mm",
+            "shortened": "ACTIVE SHORTEN - 328 mm",
+            "extended": "ACTIVE EXTEND - 362 mm",
         }
         labelled_paths: list[Path] = []
         for state_name in ("neutral", "shortened", "extended"):
