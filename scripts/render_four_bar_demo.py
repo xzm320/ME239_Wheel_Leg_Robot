@@ -23,7 +23,7 @@ MODEL_PATH = (
     / "four_bar"
     / "scene.xml"
 )
-FPS = 30
+FPS = 24
 DURATION = 5.2
 STRUT_ACTUATORS = ("left_strut", "right_strut")
 
@@ -97,10 +97,12 @@ def render(output_directory: Path) -> tuple[Path, Path]:
         next_frame_time = 0.0
         frame_index = 0
 
-        with mujoco.Renderer(model, height=720, width=960) as renderer:
-            while data.time < DURATION:
-                desired = _desired_extension(float(data.time))
-                if data.time >= 4.0 and not servos_disabled:
+        with mujoco.Renderer(model, height=480, width=640) as renderer:
+            total_steps = round(DURATION / model.opt.timestep)
+            for step in range(total_steps):
+                time_s = step * model.opt.timestep
+                desired = _desired_extension(time_s)
+                if time_s >= 4.0 and not servos_disabled:
                     for actuator_id in actuator_ids:
                         model.actuator_gainprm[actuator_id, :] = 0.0
                         model.actuator_biasprm[actuator_id, :] = 0.0
@@ -110,13 +112,11 @@ def render(output_directory: Path) -> tuple[Path, Path]:
                     # Compensate the 1500 N/m passive spring at static equilibrium.
                     data.ctrl[actuator_ids] = desired * 1.6
 
-                # A virtual fixture holds the floating trunk for this mechanism-only test.
-                position_error = data.qpos[:3] - np.array((0.0, 0.0, 0.68))
-                data.qfrc_applied[:3] = -800.0 * position_error - 80.0 * data.qvel[:3]
-                data.qfrc_applied[3:6] = -80.0 * data.qvel[3:6]
                 mujoco.mj_step(model, data)
+                if not np.isfinite(data.qpos).all():
+                    raise RuntimeError(f"simulation became unstable at {time_s:.3f} s")
 
-                if data.time + 1e-9 >= next_frame_time:
+                if time_s + 1e-9 >= next_frame_time:
                     renderer.update_scene(data, camera=camera)
                     pixels = renderer.render()
                     frame_path = frame_directory / f"frame_{frame_index:04d}.ppm"
