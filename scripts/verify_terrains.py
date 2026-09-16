@@ -13,7 +13,10 @@ os.environ.setdefault("MUJOCO_GL", "osmesa")
 import mujoco
 import numpy as np
 
-from scripts.generate_terrains import OUTPUT_DIRECTORY, SPECS, generate_heightfield
+if __package__:
+    from scripts.generate_terrains import OUTPUT_DIRECTORY, SPECS, generate_heightfield
+else:
+    from generate_terrains import OUTPUT_DIRECTORY, SPECS, generate_heightfield
 
 
 def _hfield_data(model: mujoco.MjModel, hfield_id: int) -> np.ndarray:

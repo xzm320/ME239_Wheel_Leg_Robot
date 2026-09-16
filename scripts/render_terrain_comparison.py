@@ -16,15 +16,26 @@ os.environ.setdefault("MUJOCO_GL", "osmesa")
 import mujoco
 import numpy as np
 
-from scripts.generate_terrains import (
-    LENGTH_M,
-    NX,
-    NY,
-    OUTPUT_DIRECTORY,
-    SPECS,
-    WIDTH_M,
-    generate_heightfield,
-)
+if __package__:
+    from scripts.generate_terrains import (
+        LENGTH_M,
+        NX,
+        NY,
+        OUTPUT_DIRECTORY,
+        SPECS,
+        WIDTH_M,
+        generate_heightfield,
+    )
+else:
+    from generate_terrains import (
+        LENGTH_M,
+        NX,
+        NY,
+        OUTPUT_DIRECTORY,
+        SPECS,
+        WIDTH_M,
+        generate_heightfield,
+    )
 
 
 def _write_ppm(path: Path, pixels: np.ndarray) -> None:
