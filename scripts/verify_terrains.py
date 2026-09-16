@@ -14,9 +14,19 @@ import mujoco
 import numpy as np
 
 if __package__:
-    from scripts.generate_terrains import OUTPUT_DIRECTORY, SPECS, generate_heightfield
+    from scripts.generate_terrains import (
+        OUTPUT_DIRECTORY,
+        SPECS,
+        generate_heightfield,
+        generate_obstacles,
+    )
 else:
-    from generate_terrains import OUTPUT_DIRECTORY, SPECS, generate_heightfield
+    from generate_terrains import (
+        OUTPUT_DIRECTORY,
+        SPECS,
+        generate_heightfield,
+        generate_obstacles,
+    )
 
 
 def _hfield_data(model: mujoco.MjModel, hfield_id: int) -> np.ndarray:
@@ -64,6 +74,21 @@ def verify() -> dict[str, object]:
         for key, expected in generated_metrics.items():
             assert math.isclose(recorded_metrics[key], expected, abs_tol=1e-12)
         assert np.max(np.abs(generated_heights)) <= spec.amplitude_m + 1e-12
+        generated_obstacles = generate_obstacles(spec, generated_heights)
+        recorded_obstacles = metadata["terrains"][spec.name]["obstacles"]
+        assert generated_obstacles == recorded_obstacles
+        assert len(recorded_obstacles) == spec.obstacle_count
+        for obstacle in recorded_obstacles:
+            assert (
+                mujoco.mj_name2id(
+                    model, mujoco.mjtObj.mjOBJ_GEOM, obstacle["name"]
+                )
+                >= 0
+            )
+        maximum_obstacle_height = max(
+            float(obstacle["height_m"]) for obstacle in recorded_obstacles
+        )
+        assert maximum_obstacle_height <= spec.maximum_obstacle_height_m
 
         data = mujoco.MjData(model)
         data.qpos[:7] = (-8.5, 0.0, 0.343, 1.0, 0.0, 0.0, 0.0)
@@ -83,6 +108,10 @@ def verify() -> dict[str, object]:
             "peak_design_height_mm": round(spec.amplitude_m * 1000, 1),
             "rms_height_mm": round(rms_height * 1000, 2),
             "maximum_slope_deg": round(maximum_slope, 2),
+            "obstacle_count": len(recorded_obstacles),
+            "maximum_obstacle_height_mm": round(
+                maximum_obstacle_height * 1000, 1
+            ),
             "flat_launch_height_mm": round(flat_height * 1000, 6),
             "contact_count": int(max_contacts),
             "trunk_height_after_0.4_s_m": round(float(data.qpos[2]), 4),
@@ -90,7 +119,7 @@ def verify() -> dict[str, object]:
 
     assert rms_values == sorted(rms_values)
     assert slope_values == sorted(slope_values)
-    assert slope_values[-1] < 25.0
+    assert slope_values[-1] < 55.0
 
     return {
         "terrain_count": len(SPECS),

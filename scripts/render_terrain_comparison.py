@@ -55,7 +55,7 @@ def render(output_directory: Path) -> Path:
     if shutil.which("ffmpeg") is None:
         raise RuntimeError("ffmpeg is required to compose the terrain image")
     output_directory.mkdir(parents=True, exist_ok=True)
-    output_path = output_directory / "rough_terrain_levels_v1.png"
+    output_path = output_directory / "rough_terrain_obstacles_v2.png"
     metadata = json.loads((OUTPUT_DIRECTORY / "metadata.json").read_text())
 
     with tempfile.TemporaryDirectory(prefix="terrain_comparison_") as temporary:
@@ -67,7 +67,13 @@ def render(output_directory: Path) -> Path:
                 str(OUTPUT_DIRECTORY / f"scene_{spec.name}.xml")
             )
             heights, _ = generate_heightfield(spec)
-            robot_x = 0.0
+            recorded = metadata["terrains"][spec.name]
+            transverse_obstacle = next(
+                obstacle
+                for obstacle in recorded["obstacles"]
+                if "transverse_log" in obstacle["name"]
+            )
+            robot_x = float(transverse_obstacle["position"][0]) - 0.42
             support_height = max(
                 _terrain_height(heights, robot_x, -0.1137),
                 _terrain_height(heights, robot_x, 0.1137),
@@ -98,10 +104,13 @@ def render(output_directory: Path) -> Path:
             raw_path = temporary_directory / f"{spec.name}.ppm"
             _write_ppm(raw_path, pixels)
 
-            metrics = metadata["terrains"][spec.name]["metrics"]
+            metrics = recorded["metrics"]
+            maximum_obstacle_height = max(
+                obstacle["height_m"] for obstacle in recorded["obstacles"]
+            )
             label = (
                 f"{spec.name.upper()}  RMS {metrics['rms_height_m'] * 1000:.1f} mm"
-                f"  MAX SLOPE {metrics['maximum_slope_deg']:.1f} deg"
+                f"  BUMP {maximum_obstacle_height * 1000:.0f} mm"
             )
             labelled_path = temporary_directory / f"{spec.name}.png"
             font = "/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf"
@@ -133,14 +142,9 @@ def render(output_directory: Path) -> Path:
                 "-y",
                 "-loglevel",
                 "error",
-                "-i",
-                str(labelled_paths[0]),
-                "-i",
-                str(labelled_paths[1]),
-                "-i",
-                str(labelled_paths[2]),
+                *(item for path in labelled_paths for item in ("-i", str(path))),
                 "-filter_complex",
-                "hstack=inputs=3",
+                f"hstack=inputs={len(labelled_paths)}",
                 "-frames:v",
                 "1",
                 str(output_path),
