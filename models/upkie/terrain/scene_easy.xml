@@ -20,7 +20,7 @@
   <worldbody>
     <light pos="-2 -2 4" dir="0.2 0.2 -1" directional="true"/>
     <geom name="terrain" type="hfield" hfield="easy_heightfield"
-          pos="0 0 -0.01500" material="easy_ground"
+          pos="0 0 -0.01505882" material="easy_ground"
           friction="1.1 0.02 0.002" condim="3"/>
   </worldbody>
 </mujoco>

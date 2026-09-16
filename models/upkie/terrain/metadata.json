@@ -1,4 +1,17 @@
 {
+  "encoding": {
+    "calibration_pixels": [
+      [
+        0,
+        0
+      ],
+      [
+        160,
+        800
+      ]
+    ],
+    "flat_grayscale": 128
+  },
   "generator": "scripts/generate_terrains.py",
   "grid": {
     "columns": 801,
