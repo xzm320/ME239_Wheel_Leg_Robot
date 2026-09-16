@@ -25,6 +25,7 @@ uv run python scripts/verify_mujoco.py
 uv run python scripts/verify_upkie_baseline.py
 uv run python scripts/verify_flexible_hip.py
 uv run python scripts/verify_four_bar.py
+uv run python scripts/verify_terrains.py
 uv run pytest
 ```
 
@@ -34,6 +35,7 @@ uv run pytest
 
 ```bash
 uv run python scripts/render_four_bar_demo.py
+uv run python scripts/render_terrain_comparison.py
 ```
 
 若本机有图形桌面，可打开交互查看器：
@@ -51,8 +53,8 @@ uv run python -m mujoco.viewer --mjcf models/upkie/four_bar/scene.xml
 1. MuJoCo 环境与自检（已完成）
 2. 筛选并集成 Upkie 原型基线（已完成）
 3. 建立在前后 x、垂向 z 两个方向具有线性回中力的柔顺髋座（已完成）
-4. 将轮腿改为带主动伸缩、被动弹性横杆的四连杆机构（当前阶段）
-5. 构建参数化崎岖路面与分级测试场景
+4. 将轮腿改为带主动伸缩、被动弹性横杆的四连杆机构（已完成）
+5. 构建参数化崎岖路面与分级测试场景（当前阶段）
 6. 建立控制器、参数辨识和高速运行调参/评估流程
 
 机械参数和控制增益不会直接凭经验固定。后续将从质量、目标固有频率、最大行程、执行器力矩/推力和轮地接触约束出发给出初值，再通过批量仿真与稳定性指标调整。
