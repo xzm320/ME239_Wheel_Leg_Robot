@@ -36,6 +36,7 @@ uv run pytest
 ```bash
 uv run python scripts/render_four_bar_demo.py
 uv run python scripts/render_terrain_comparison.py
+uv run python scripts/render_sleeve_safety.py
 ```
 
 若本机有图形桌面，可打开交互查看器：
