@@ -18,7 +18,8 @@ http://www.apache.org/licenses/LICENSE-2.0
     <joint armature="0.005" damping="0.15"/>
     <geom friction="0.8 0.01 0.001" solref="0.004 1"/>
     <default class="link">
-      <geom type="capsule" size="0.012" rgba="0.82 0.84 0.88 1"/>
+      <geom type="capsule" size="0.012" contype="0" conaffinity="0"
+            rgba="0.82 0.84 0.88 1"/>
     </default>
     <default class="wheel">
       <geom type="cylinder" size="0.055 0.022" friction="1.1 0.02 0.001"
@@ -64,13 +65,15 @@ http://www.apache.org/licenses/LICENSE-2.0
             <body name="left_strut_outer" quat="0 0 0 1">
               <joint name="left_strut_angle" type="hinge" axis="0 1 0"/>
               <geom type="capsule" fromto="0 0 0 0.070 0 0" size="0.011"
-                    mass="0.15" rgba="0.15 0.78 0.42 1"/>
+                    mass="0.15" contype="0" conaffinity="0"
+                    rgba="0.15 0.78 0.42 1"/>
               <body name="left_strut_inner" pos="0.070 0 0">
                 <joint name="left_strut_extension" type="slide" axis="1 0 0"
                        range="-0.060 0.060" stiffness="1500" damping="25"
                        springref="0" armature="0.03"/>
                 <geom type="capsule" fromto="0 0 0 0.080 0 0" size="0.007"
-                      mass="0.10" rgba="0.85 0.95 0.88 1"/>
+                      mass="0.10" contype="0" conaffinity="0"
+                      rgba="0.85 0.95 0.88 1"/>
                 <site name="left_strut_endpoint" pos="0.080 0 0" size="0.008"
                       rgba="0.15 0.78 0.42 1"/>
               </body>
@@ -131,13 +134,15 @@ http://www.apache.org/licenses/LICENSE-2.0
             <body name="right_strut_outer" quat="0 0 0 1">
               <joint name="right_strut_angle" type="hinge" axis="0 1 0"/>
               <geom type="capsule" fromto="0 0 0 0.070 0 0" size="0.011"
-                    mass="0.15" rgba="0.15 0.78 0.42 1"/>
+                    mass="0.15" contype="0" conaffinity="0"
+                    rgba="0.15 0.78 0.42 1"/>
               <body name="right_strut_inner" pos="0.070 0 0">
                 <joint name="right_strut_extension" type="slide" axis="1 0 0"
                        range="-0.060 0.060" stiffness="1500" damping="25"
                        springref="0" armature="0.03"/>
                 <geom type="capsule" fromto="0 0 0 0.080 0 0" size="0.007"
-                      mass="0.10" rgba="0.85 0.95 0.88 1"/>
+                      mass="0.10" contype="0" conaffinity="0"
+                      rgba="0.85 0.95 0.88 1"/>
                 <site name="right_strut_endpoint" pos="0.080 0 0" size="0.008"
                       rgba="0.15 0.78 0.42 1"/>
               </body>
