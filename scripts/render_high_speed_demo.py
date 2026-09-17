@@ -53,7 +53,7 @@ else:
 
 ACCEL_M_S2 = 0.70
 FPS = 24
-RECORD_START_S = 55.5
+RECORD_START_S = 52.5
 DURATION_S = 64.0
 
 
@@ -78,7 +78,7 @@ def _annotate(
     draw.rounded_rectangle((14, 12, 470, 92), radius=8, fill=(0, 0, 0, 170))
     draw.text(
         (26, 18),
-        "PID  100 km/h  UNITREE PERLIN",
+        "PID  100 km/h  CHECKER PAD",
         font=large,
         fill=(255, 255, 255, 255),
     )
@@ -107,9 +107,9 @@ def render(output_directory: Path) -> Path:
     apply_wheel_track_scale(model, HUNDRED_KMH_WHEEL_TRACK_SCALE)
     apply_hundred_kmh_suspension(model)
     # Large heightfields inflate model extent and clip a 3 m follow camera.
-    model.stat.extent = 3.0
+    model.stat.extent = 4.5
     model.vis.map.znear = 0.01
-    model.vis.map.zfar = 80.0
+    model.vis.map.zfar = 40.0
     data = mujoco.MjData(model)
     data.qpos[:7] = (START_X_M, 0.0, 0.408, 1.0, 0.0, 0.0, 0.0)
     mujoco.mj_forward(model, data)
@@ -123,9 +123,9 @@ def render(output_directory: Path) -> Path:
 
     camera = mujoco.MjvCamera()
     camera.type = mujoco.mjtCamera.mjCAMERA_FREE
-    camera.distance = 3.0
-    camera.azimuth = 110
-    camera.elevation = -7
+    camera.distance = 4.4
+    camera.azimuth = 128
+    camera.elevation = -28
     scene_option = mujoco.MjvOption()
     scene_option.geomgroup[3] = 1
 
@@ -168,15 +168,15 @@ def render(output_directory: Path) -> Path:
                 roll, _ = quaternion_roll_yaw(data.qpos[3:7])
                 pitch = quaternion_pitch(data.qpos[3:7])
 
-                if data.qpos[2] < 0.14 or abs(roll) > 0.40:
+                if data.qpos[2] < 0.14 or abs(roll) > 0.40 or abs(pitch) > 0.45:
                     break
                 if time_s + 1e-9 < next_frame_time:
                     continue
 
                 camera.lookat[:] = (
-                    float(data.qpos[0]) + 0.85,
+                    float(data.qpos[0]) + 0.40,
                     float(data.qpos[1]),
-                    0.12,
+                    0.08,
                 )
                 renderer.update_scene(
                     data, camera=camera, scene_option=scene_option
@@ -192,7 +192,7 @@ def render(output_directory: Path) -> Path:
                 Image.fromarray(pixels).save(
                     frame_directory / f"frame_{frame_index:04d}.ppm"
                 )
-                if frame_index == 48:
+                if frame_index == 24:
                     Image.fromarray(pixels).save(still_path)
                 frame_index += 1
                 next_frame_time = RECORD_START_S + frame_index / FPS

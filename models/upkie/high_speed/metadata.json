@@ -1,29 +1,30 @@
 {
   "grid": {
-    "columns": 10001,
-    "rows": 257
+    "columns": 384,
+    "rows": 384
   },
-  "height_scale_m": 0.24,
+  "height_scale_m": 0.2,
   "metrics": {
-    "flat_launch_end_x_m": -300.0,
     "generator": "unitree_AddPerlinHeighField",
-    "height_scale_m": 0.24,
-    "lateral_resolution_m": 0.25,
-    "length_m": 3000.0,
-    "maximum_height_m": 0.12525058159409033,
-    "maximum_slope_deg": 1.9461197131902985,
-    "minimum_height_m": -0.1328403178650533,
+    "grid_columns": 384,
+    "grid_rows": 384,
+    "height_scale_m": 0.2,
+    "lateral_resolution_m": 0.0039164490861618795,
+    "length_m": 2.0,
+    "maximum_height_m": 0.16839803588834676,
+    "maximum_slope_deg": 29.65713683346642,
+    "minimum_height_m": 0.05562748459248408,
+    "patch_pos_x_m": 0.0,
+    "patch_pos_y_m": 0.0,
     "perlin_lacunarity": 2.0,
-    "perlin_octaves": 3,
+    "perlin_octaves": 6,
     "perlin_persistence": 0.5,
-    "perlin_smooth_x_m": 16.0,
-    "perlin_smooth_y_m": 32.0,
-    "resolution_m": 0.2999999999999545,
-    "rms_height_m": 0.035666723791397216,
-    "rough_start_x_m": -140.0,
-    "width_m": 64.0
+    "perlin_smooth_px": 300.0,
+    "resolution_m": 0.005221932114882507,
+    "rms_height_m": 0.10555218855773914,
+    "width_m": 1.5
   },
-  "negative_height_m": 0.1,
+  "negative_height_m": 0.2,
   "seed": 20260917,
-  "source": "unitree_mujoco/terrain_tool AddPerlinHeighField (pnoise2 octaves/persistence/lacunarity)"
+  "source": "unitree_mujoco/terrain_tool AddPerlinHeighField demo: size=[2.0, 1.5], image 128 px, smooth=100, octaves=6, persistence=0.5, height_scale=0.2; mesh upsampled 3x"
 }

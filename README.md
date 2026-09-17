@@ -2,9 +2,17 @@
 
 MuJoCo 里的轮腿原型：从 Upkie 改出柔顺髋座、菱形四连杆、分级崎岖路面，再用 PID 把 3 倍轮距机体开到约 100 km/h。点开图片可看对应视频。
 
-[![100 km/h Perlin 地形](docs/media/high_speed_100kmh.png)](docs/media/high_speed_100kmh.mp4)
+![Unitree 同款 Perlin 褶皱](docs/media/unitree_perlin.png)
+
+[![机器人站在 Perlin 小块上](docs/media/unitree_perlin_robot.png)](docs/media/unitree_perlin_orbit.mp4)
 
 ## 已实现
+
+### Unitree 同款 Perlin 高度场
+
+按 [unitree_mujoco/terrain_tool](https://github.com/unitreerobotics/unitree_mujoco) 里 `AddPerlinHeighField` 的演示调用铺：`size=[2.0, 1.5]`、128 px 图、`smooth=100`、6 层、`height_scale=0.2`。网格加到 384 px，同样的褶皱更细。灰色无纹理，搁在默认蓝棋盘上，侧光把纸皱打出来。
+
+这是一块 2 m × 1.5 m 的毯子，不是 400 m 灰面：相机贴着拍，20 cm 起伏才能看清楚。3 倍轮距机体在这种密褶皱上站得住，但不能用同一套 100 km/h PID 巡航。
 
 ### 菱形四连杆与套筒横杆
 
@@ -36,7 +44,9 @@ MuJoCo 里的轮腿原型：从 Upkie 改出柔顺髋座、菱形四连杆、分
 
 ### 100 km/h（3 倍轮距）
 
-轮距 682 mm、甲板 656 mm，是上一版 4 倍轮距的 3/4。高速赛道只剩 Unitree [AddPerlinHeighField](https://github.com/unitreerobotics/unitree_mujoco/blob/main/terrain_tool/readme_zh.md#6addperlinheighfield) 高度场，不再摆圆柱/椭球装饰。3 层 Perlin，沿前进方向 smooth 16 m、横向 32 m，`height_scale` 0.24 m；侧光加阴影，地面用纯色泥土，不铺高对比棋盘。64 s 峰值 **28.41 m/s（102.3 km/h）**，行驶 1081 m，最大俯仰 5.1°、横滚 6.5°。36 km/h 邻域仍在起飞垫上稳定。
+轮距 682 mm、甲板 656 mm。在棋盘起飞垫上 PID 能拉到 **100 km/h** 并巡航满 64 s。Unitree 演示那种 1.56 m 基波长 / 6 层褶皱，3 倍轮距下没法像缓坡那样在皱面上巡航。36 km/h 邻域仍在垫上稳定。
+
+[![100 km/h 起飞垫](docs/media/high_speed_100kmh.png)](docs/media/high_speed_100kmh.mp4)
 
 连杆仍用 190 mm：站立菱形已有约 174 mm 压缩行程。只加长连杆、不加长横杆，行程会变短。
 
@@ -52,6 +62,8 @@ uv run python -m mujoco.viewer --mjcf models/upkie/high_speed/scene.xml
 重新生成演示：
 
 ```bash
+uv run python scripts/generate_high_speed_track.py
+uv run python scripts/render_unitree_perlin.py --output-directory docs/media
 uv run python scripts/render_four_bar_demo.py --output-directory docs/media
 uv run python scripts/render_high_speed_demo.py --output-directory docs/media
 ```

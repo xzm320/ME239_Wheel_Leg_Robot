@@ -49,10 +49,10 @@ MODEL_PATH = (
 )
 WHEEL_RADIUS_M = 0.120
 NOMINAL_HIP_Y_M = 0.1137
-START_X_M = -1100.0
+START_X_M = -2000.0
 CROUCHED_TRUNK_HEIGHT_M = 0.408
 TRUNK_COM_Z_OFFSET_M = 0.0
-ROUGH_START_X_M = -140.0
+ROUGH_START_X_M = -1.0
 TARGET_100_KMH_M_S = 100.0 / 3.6
 HUNDRED_KMH_WHEEL_TRACK_SCALE = 3.0
 HUNDRED_KMH_STRUT_KP = 2800.0
@@ -302,7 +302,7 @@ def run_high_speed_episode(
     launch_x = (
         start_x_m
         if start_x_m is not None
-        else (START_X_M if not rolling_start else -600.0)
+        else (START_X_M if not rolling_start else -1600.0)
     )
     data.qpos[:7] = (launch_x, 0.0, 0.408, 1.0, 0.0, 0.0, 0.0)
     mujoco.mj_forward(model, data)

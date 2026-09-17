@@ -33,7 +33,7 @@ else:
     )
 
 ROBUST_SPEEDS_M_S = (9.8, 10.0, 10.2)
-ROUGH_START_DISTANCE_M = 960.0
+ROUGH_START_DISTANCE_M = 1000.0
 
 
 def verify() -> dict[str, object]:
