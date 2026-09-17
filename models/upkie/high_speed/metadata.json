@@ -1,20 +1,23 @@
 {
-  "amplitude_limit_m": 0.03,
+  "amplitude_limit_m": 0.16,
   "grid": {
-    "columns": 12001,
-    "rows": 321
+    "columns": 10001,
+    "rows": 257
   },
   "metrics": {
-    "flat_launch_end_x_m": -400.0,
-    "flat_pad_each_side_m": 500.0,
+    "flat_launch_end_x_m": -500.0,
+    "lateral_resolution_m": 0.25,
     "length_m": 3000.0,
-    "maximum_height_m": 0.03,
-    "maximum_slope_deg": 0.26817600836544836,
-    "minimum_height_m": -0.01999121370268526,
-    "resolution_m": 0.25,
-    "rms_height_m": 0.01270649526100331,
-    "rough_start_x_m": -370.0,
-    "width_m": 32.0
+    "maximum_height_m": 0.15949319004343632,
+    "maximum_slope_deg": 12.309570620215307,
+    "minimum_height_m": -0.15147430969006992,
+    "resolution_m": 0.2999999999999545,
+    "rms_height_m": 0.050618398685345845,
+    "rough_start_x_m": -300.0,
+    "whoop_count": 108,
+    "whoop_start_x_m": -250.0,
+    "width_m": 64.0
   },
-  "seed": 8080
+  "scenery_prop_count": 106,
+  "seed": 9144
 }

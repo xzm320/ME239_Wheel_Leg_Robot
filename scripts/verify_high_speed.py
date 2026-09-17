@@ -33,7 +33,7 @@ else:
     )
 
 ROBUST_SPEEDS_M_S = (9.8, 10.0, 10.2)
-ROUGH_START_DISTANCE_M = 730.0
+ROUGH_START_DISTANCE_M = 780.0
 
 
 def verify() -> dict[str, object]:
@@ -49,9 +49,13 @@ def verify() -> dict[str, object]:
     assert hundred.wheel_track_scale == HUNDRED_KMH_WHEEL_TRACK_SCALE
     assert hundred.peak_speed_m_s > 27.5
     assert hundred.distance_m > 900.0
-    assert hundred.maximum_pitch_deg < 8.0
+    assert hundred.maximum_pitch_deg < 24.0
 
     model = mujoco.MjModel.from_xml_path(str(MODEL_PATH))
+    trunk_geom = mujoco.mj_name2id(
+        model, mujoco.mjtObj.mjOBJ_GEOM, "trunk_collision"
+    )
+    assert float(model.geom_size[trunk_geom, 1]) >= 0.42
     wheel_damping = []
     for name in ("left_wheel_joint", "right_wheel_joint"):
         joint_id = mujoco.mj_name2id(
@@ -79,6 +83,9 @@ def verify() -> dict[str, object]:
         "wheel_track_scale": hundred.wheel_track_scale,
         "wheel_track_mm": round(
             2.0 * NOMINAL_HIP_Y_M * hundred.wheel_track_scale * 1000.0, 1
+        ),
+        "chassis_half_width_mm": round(
+            float(model.geom_size[trunk_geom, 1]) * 1000.0, 1
         ),
         "wheel_joint_damping_n_m_s_rad": wheel_damping[0],
         "selected_wheel_speed_rpm": round(

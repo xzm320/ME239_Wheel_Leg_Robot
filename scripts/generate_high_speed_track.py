@@ -1,5 +1,16 @@
 #!/usr/bin/env python3
-"""Generate a long, smooth rough-terrain track for high-speed validation."""
+"""Generate a long high-speed track with visible 2D roughness.
+
+The old 30 mm, 3.5–8 m extruded profile looked flat from a 4 m camera, and a
+1.55 m washboard at 100 km/h is an 18 Hz pitch hammer. This generator follows
+the usual robotics-sim mix:
+
+- Isaac Lab / ANYmal-style multi-octave 2D noise (not a 1D extrusion)
+- Motocross-style isolated cosine whoops for a readable ground silhouette
+- Sparse 2D Gaussian dirt piles
+- Unitree-style off-line ellipsoid/log props that catch raking light
+- A long cosine blend off a flat launch pad
+"""
 
 from __future__ import annotations
 
@@ -14,97 +25,197 @@ import numpy as np
 ROOT = Path(__file__).resolve().parents[1]
 OUTPUT_DIRECTORY = ROOT / "models" / "upkie" / "high_speed"
 LENGTH_M = 3000.0
-INNER_LENGTH_M = 2000.0
-INNER_NX = 8001
-PAD_NX = 2000
-WIDTH_M = 32.0
-NX = INNER_NX + 2 * PAD_NX
-NY = 321
-AMPLITUDE_M = 0.030
-SEED = 8080
+WIDTH_M = 64.0
+NX = 10001
+NY = 257
+AMPLITUDE_M = 0.16
+SEED = 9144
 
 
-def _smooth_noise(
-    rng: np.random.Generator,
-    sample_count: int,
-    sigma_samples: float,
-) -> np.ndarray:
-    radius = round(4.0 * sigma_samples)
+def _gaussian_kernel(sigma_samples: float) -> np.ndarray:
+    radius = max(2, round(4.0 * sigma_samples))
     positions = np.arange(-radius, radius + 1)
-    kernel = np.exp(-0.5 * (positions / sigma_samples) ** 2)
+    kernel = np.exp(-0.5 * (positions / max(sigma_samples, 1e-6)) ** 2)
     kernel /= np.sum(kernel)
-    noise = rng.normal(size=sample_count + 2 * radius)
-    filtered = np.convolve(noise, kernel, mode="same")[radius:-radius]
-    filtered -= np.mean(filtered)
-    filtered /= np.max(np.abs(filtered))
+    return kernel
+
+
+def _smooth_1d(signal: np.ndarray, sigma_samples: float) -> np.ndarray:
+    kernel = _gaussian_kernel(sigma_samples)
+    radius = kernel.size // 2
+    padded = np.pad(signal, radius, mode="reflect")
+    filtered = np.convolve(padded, kernel, mode="valid")
+    filtered -= float(np.mean(filtered))
+    peak = float(np.max(np.abs(filtered)))
+    if peak > 0.0:
+        filtered /= peak
     return filtered
+
+
+def _smooth_2d(
+    field: np.ndarray, sigma_x_samples: float, sigma_y_samples: float
+) -> np.ndarray:
+    kernel_x = _gaussian_kernel(sigma_x_samples)
+    kernel_y = _gaussian_kernel(sigma_y_samples)
+    radius_x = kernel_x.size // 2
+    radius_y = kernel_y.size // 2
+    padded_x = np.pad(field, ((0, 0), (radius_x, radius_x)), mode="reflect")
+    along_x = np.apply_along_axis(
+        lambda row: np.convolve(row, kernel_x, mode="valid"), 1, padded_x
+    )
+    padded_y = np.pad(along_x, ((radius_y, radius_y), (0, 0)), mode="reflect")
+    blurred = np.apply_along_axis(
+        lambda column: np.convolve(column, kernel_y, mode="valid"), 0, padded_y
+    )
+    blurred -= float(np.mean(blurred))
+    peak = float(np.max(np.abs(blurred)))
+    if peak > 0.0:
+        blurred /= peak
+    return blurred
+
+
+def _cosine_pulse(delta: np.ndarray, length_m: float) -> np.ndarray:
+    half = 0.5 * length_m
+    pulse = np.zeros_like(delta)
+    inside = np.abs(delta) <= half
+    pulse[inside] = 0.5 * (1.0 + np.cos(math.pi * delta[inside] / half))
+    return pulse
 
 
 def generate_heightfield() -> tuple[np.ndarray, dict[str, float]]:
     rng = np.random.default_rng(SEED)
-    inner_x = np.linspace(-INNER_LENGTH_M / 2.0, INNER_LENGTH_M / 2.0, INNER_NX)
-    y = np.linspace(-WIDTH_M / 2.0, WIDTH_M / 2.0, NY)
-    dx = float(inner_x[1] - inner_x[0])
-    base = 0.014 * _smooth_noise(rng, INNER_NX, 10.0 / dx)
-
-    # Long rounded crests remain meaningful at high speed without becoming
-    # step impacts whose acceleration tends toward an impulse.
-    for center in np.linspace(-350.0, 750.0, 64):
-        shifted_center = center + rng.uniform(-4.0, 4.0)
-        height = rng.uniform(-0.016, 0.026)
-        width = rng.uniform(3.5, 8.0)
-        base += height * np.exp(-0.5 * ((inner_x - shifted_center) / width) ** 2)
-
-    envelope = np.ones_like(inner_x)
-    envelope[inner_x < -400.0] = 0.0
-    transition = (inner_x >= -400.0) & (inner_x < -370.0)
-    ratio = (inner_x[transition] + 400.0) / 30.0
-    envelope[transition] = 0.5 - 0.5 * np.cos(math.pi * ratio)
-    envelope[inner_x > 850.0] = 0.0
-    transition = (inner_x > 820.0) & (inner_x <= 850.0)
-    ratio = (inner_x[transition] - 820.0) / 30.0
-    envelope[transition] = 0.5 + 0.5 * np.cos(math.pi * ratio)
-    base *= envelope
-
-    padded = np.zeros(NX, dtype=base.dtype)
-    padded[PAD_NX : PAD_NX + INNER_NX] = base
     x = np.linspace(-LENGTH_M / 2.0, LENGTH_M / 2.0, NX)
-    heights = np.clip(
-        np.broadcast_to(padded, (NY, NX)),
-        -AMPLITUDE_M,
-        AMPLITUDE_M,
+    y = np.linspace(-WIDTH_M / 2.0, WIDTH_M / 2.0, NY)
+    dx = float(x[1] - x[0])
+    dy = float(y[1] - y[0])
+    grid_y, grid_x = np.meshgrid(y, x, indexing="ij")
+
+    # Multi-octave 2D roughness so left and right wheels see different ground.
+    hills = 0.024 * _smooth_2d(
+        rng.normal(size=(NY, NX)), 8.0 / dx, 6.0 / dy
     )
-    slope_y, slope_x = np.gradient(
-        heights,
-        float(y[1] - y[0]),
-        dx,
+    medium = 0.014 * _smooth_2d(
+        rng.normal(size=(NY, NX)), 3.2 / dx, 2.5 / dy
     )
-    active = (x >= -370.0) & (x <= 820.0)
+    ripple = 0.007 * _smooth_2d(
+        rng.normal(size=(NY, NX)), 1.3 / dx, 1.2 / dy
+    )
+    heights = hills + medium + ripple
+
+    # Isolated cosine whoops: readable silhouette without an 18 Hz washboard.
+    whoop_x = -250.0
+    whoop_index = 0
+    while whoop_x < 760.0:
+        length = float(rng.uniform(3.2, 4.8))
+        gap = float(rng.uniform(5.8, 8.6))
+        height = float(rng.uniform(0.070, 0.108))
+        if whoop_index == 0:
+            height *= 0.45
+        elif whoop_index == 1:
+            height *= 0.68
+        elif whoop_index == 2:
+            height *= 0.85
+        tilt = float(rng.uniform(-0.008, 0.008))
+        pulse = _cosine_pulse(grid_x - whoop_x, length)
+        lateral = 1.0 + 0.10 * np.sin(
+            2.0 * math.pi * grid_y / 9.0 + rng.uniform(0.0, 6.0)
+        )
+        heights += pulse * (height + tilt * grid_y) * lateral
+        whoop_x += 0.5 * length + gap
+        whoop_index += 1
+
+    # Rounded 2D dirt piles on and beside the racing line.
+    for _ in range(48):
+        center_x = rng.uniform(-220.0, 740.0)
+        center_y = rng.uniform(-10.0, 10.0)
+        height = rng.uniform(0.028, 0.070)
+        width_x = rng.uniform(2.0, 3.8)
+        width_y = rng.uniform(1.4, 2.8)
+        heights += height * np.exp(
+            -0.5
+            * (
+                ((grid_x - center_x) / width_x) ** 2
+                + ((grid_y - center_y) / width_y) ** 2
+            )
+        )
+
+    envelope = np.ones_like(x)
+    envelope[x < -500.0] = 0.0
+    transition = (x >= -500.0) & (x < -300.0)
+    ratio = (x[transition] + 500.0) / 200.0
+    envelope[transition] = 0.5 - 0.5 * np.cos(math.pi * ratio)
+    envelope[x > 900.0] = 0.0
+    transition = (x > 780.0) & (x <= 900.0)
+    ratio = (x[transition] - 780.0) / 120.0
+    envelope[transition] = 0.5 + 0.5 * np.cos(math.pi * ratio)
+    heights *= envelope[np.newaxis, :]
+    heights = AMPLITUDE_M * np.tanh(heights / 0.11)
+
+    slope_y, slope_x = np.gradient(heights, dy, dx)
+    active = (x >= -300.0) & (x <= 760.0)
     return heights, {
         "length_m": LENGTH_M,
         "width_m": WIDTH_M,
         "resolution_m": dx,
+        "lateral_resolution_m": dy,
         "minimum_height_m": float(np.min(heights[:, active])),
         "maximum_height_m": float(np.max(heights[:, active])),
-        "rms_height_m": float(
-            np.sqrt(np.mean(heights[:, active] ** 2))
-        ),
+        "rms_height_m": float(np.sqrt(np.mean(heights[:, active] ** 2))),
         "maximum_slope_deg": float(
             np.degrees(
                 np.arctan(
-                    np.max(
-                        np.hypot(
-                            slope_x[:, active],
-                            slope_y[:, active],
-                        )
-                    )
+                    np.max(np.hypot(slope_x[:, active], slope_y[:, active]))
                 )
             )
         ),
-        "flat_launch_end_x_m": -400.0,
-        "rough_start_x_m": -370.0,
-        "flat_pad_each_side_m": PAD_NX * dx,
+        "flat_launch_end_x_m": -500.0,
+        "rough_start_x_m": -300.0,
+        "whoop_start_x_m": -250.0,
+        "whoop_count": whoop_index,
     }
+
+
+def generate_scenery_props() -> list[dict[str, object]]:
+    """Unitree-style logs and dirt piles kept off the 4x wheel track."""
+
+    rng = np.random.default_rng(SEED + 17)
+    props: list[dict[str, object]] = []
+    x = -230.0
+    index = 0
+    while x < 740.0:
+        side = 1.0 if index % 2 == 0 else -1.0
+        y = side * float(rng.uniform(5.4, 9.6))
+        radius = float(rng.uniform(0.16, 0.24))
+        half_length = float(rng.uniform(1.1, 1.8))
+        props.append(
+            {
+                "name": f"scenery_log_{index:02d}",
+                "type": "cylinder",
+                "position": [float(x), y, radius],
+                "size": [radius, half_length],
+                "quaternion": [math.sqrt(0.5), math.sqrt(0.5), 0.0, 0.0],
+                "rgba": "0.78 0.42 0.16 1",
+            }
+        )
+        mound_x = x + float(rng.uniform(2.4, 4.2))
+        mound_y = -side * float(rng.uniform(4.8, 8.8))
+        props.append(
+            {
+                "name": f"scenery_mound_{index:02d}",
+                "type": "ellipsoid",
+                "position": [mound_x, mound_y, 0.055],
+                "size": [
+                    float(rng.uniform(0.90, 1.45)),
+                    float(rng.uniform(0.55, 0.95)),
+                    float(rng.uniform(0.08, 0.13)),
+                ],
+                "quaternion": [1.0, 0.0, 0.0, 0.0],
+                "rgba": "0.62 0.38 0.16 1",
+            }
+        )
+        x += float(rng.uniform(14.0, 22.0))
+        index += 1
+    return props
 
 
 def _write_grayscale_png(path: Path, values: np.ndarray) -> None:
@@ -130,9 +241,24 @@ def _write_grayscale_png(path: Path, values: np.ndarray) -> None:
     path.write_bytes(payload)
 
 
+def _prop_xml(props: list[dict[str, object]]) -> str:
+    lines = []
+    for prop in props:
+        position = " ".join(f"{value:.6f}" for value in prop["position"])
+        size = " ".join(f"{value:.6f}" for value in prop["size"])
+        quaternion = " ".join(f"{value:.8f}" for value in prop["quaternion"])
+        lines.append(
+            f'    <geom name="{prop["name"]}" type="{prop["type"]}" '
+            f'pos="{position}" size="{size}" quat="{quaternion}" '
+            f'group="3" rgba="{prop["rgba"]}" contype="0" conaffinity="0"/>'
+        )
+    return "\n".join(lines)
+
+
 def generate() -> dict[str, object]:
     OUTPUT_DIRECTORY.mkdir(parents=True, exist_ok=True)
     heights, metrics = generate_heightfield()
+    props = generate_scenery_props()
     encoded = (heights / (2.0 * AMPLITUDE_M) + 0.5) * 255.0
     encoded[0, 0] = 0.0
     encoded[-1, -1] = 255.0
@@ -141,28 +267,34 @@ def generate() -> dict[str, object]:
     vertical_offset = -vertical_scale * 128.0 / 255.0
     scene = f"""<!-- Generated by scripts/generate_high_speed_track.py. -->
 <mujoco model="upkie_high_speed_rough_track">
-  <include file="../four_bar/robot.xml"/>
+  <include file="robot.xml"/>
   <visual>
-    <headlight diffuse="0.8 0.8 0.8" ambient="0.4 0.4 0.4"/>
-    <rgba haze="0.18 0.24 0.30 1"/>
+    <headlight diffuse="0.72 0.70 0.66" ambient="0.16 0.18 0.22"/>
+    <rgba haze="0.16 0.22 0.28 1"/>
+    <quality shadowsize="4096"/>
     <global offwidth="960" offheight="540"/>
   </visual>
   <asset>
     <hfield name="high_speed_track" file="heightfield.png"
-            size="1500 16 {vertical_scale:.6f} 0.10"/>
-    <texture type="skybox" builtin="gradient" rgb1="0.42 0.58 0.76"
+            size="1500 32 {vertical_scale:.6f} 0.10"/>
+    <texture type="skybox" builtin="gradient" rgb1="0.40 0.56 0.74"
              rgb2="0.05 0.06 0.08" width="512" height="3072"/>
     <texture type="2d" name="track_grid" builtin="checker" mark="edge"
-             rgb1="0.55 0.44 0.24" rgb2="0.25 0.18 0.09"
-             markrgb="0.95 0.88 0.62" width="512" height="512"/>
+             rgb1="0.66 0.50 0.26" rgb2="0.24 0.16 0.08"
+             markrgb="0.94 0.82 0.50" width="512" height="512"/>
     <material name="track" texture="track_grid" texuniform="true"
-              texrepeat="750 32" reflectance="0.06"/>
+              texrepeat="420 28" reflectance="0.03"/>
   </asset>
   <worldbody>
-    <light pos="-5 -4 8" dir="0.3 0.2 -1" directional="true"/>
+    <light pos="10 -20 3.2" dir="-0.18 0.82 -0.42" directional="true"
+           diffuse="1.05 0.90 0.68" specular="0.55 0.42 0.28"
+           castshadow="true"/>
+    <light pos="-14 4 9" dir="0.28 -0.08 -1" directional="true"
+           diffuse="0.22 0.26 0.32"/>
     <geom name="terrain" type="hfield" hfield="high_speed_track"
           pos="0 0 {vertical_offset:.9f}" material="track" group="3"
           friction="1.1 0.02 0.002" condim="3"/>
+{_prop_xml(props)}
   </worldbody>
 </mujoco>
 """
@@ -172,6 +304,7 @@ def generate() -> dict[str, object]:
         "amplitude_limit_m": AMPLITUDE_M,
         "grid": {"rows": NY, "columns": NX},
         "metrics": metrics,
+        "scenery_prop_count": len(props),
     }
     (OUTPUT_DIRECTORY / "metadata.json").write_text(
         json.dumps(metadata, indent=2, sort_keys=True) + "\n",
