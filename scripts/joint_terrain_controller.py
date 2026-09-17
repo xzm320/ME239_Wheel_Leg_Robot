@@ -144,6 +144,23 @@ def apply_compliance_parameters(
             model.dof_damping[int(model.jnt_dofadr[joint_id])] = damping
 
 
+def apply_wheel_joint_damping(
+    model: mujoco.MjModel,
+    damping_n_m_s_rad: float,
+) -> None:
+    """Set symmetric wheel damping for an operating-point controller."""
+
+    for joint_name in ("left_wheel_joint", "right_wheel_joint"):
+        joint_id = mujoco.mj_name2id(
+            model, mujoco.mjtObj.mjOBJ_JOINT, joint_name
+        )
+        if joint_id < 0:
+            raise ValueError(f"MuJoCo joint not found: {joint_name}")
+        model.dof_damping[int(model.jnt_dofadr[joint_id])] = (
+            damping_n_m_s_rad
+        )
+
+
 def strut_spring_compensation(
     parameters: ComplianceParameters,
     servo_stiffness_n_m: float = 8000.0,

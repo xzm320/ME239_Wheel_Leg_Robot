@@ -15,24 +15,26 @@ import mujoco
 import numpy as np
 
 if __package__:
-    from scripts.balance_controller import quaternion_pitch
+    from scripts.balance_controller import BalanceGains, quaternion_pitch
     from scripts.joint_terrain_controller import (
         JointTerrainController,
         ComplianceParameters,
         TerrainControlGains,
         apply_compliance_parameters,
+        apply_wheel_joint_damping,
         medium_terrain_speed_profile,
         quaternion_roll_yaw,
         sample_preview_ground_heights,
         strut_spring_compensation,
     )
 else:
-    from balance_controller import quaternion_pitch
+    from balance_controller import BalanceGains, quaternion_pitch
     from joint_terrain_controller import (
         JointTerrainController,
         ComplianceParameters,
         TerrainControlGains,
         apply_compliance_parameters,
+        apply_wheel_joint_damping,
         medium_terrain_speed_profile,
         quaternion_roll_yaw,
         sample_preview_ground_heights,
@@ -58,10 +60,12 @@ def _id(model: mujoco.MjModel, object_type: int, name: str) -> int:
 def run_episode(
     gains: TerrainControlGains | None = None,
     compliance: ComplianceParameters | None = None,
+    balance_gains: BalanceGains | None = None,
 ) -> dict[str, np.ndarray | float]:
     model = mujoco.MjModel.from_xml_path(str(MODEL_PATH))
     mechanical_parameters = compliance or ComplianceParameters()
     apply_compliance_parameters(model, mechanical_parameters)
+    apply_wheel_joint_damping(model, 0.15)
     data = mujoco.MjData(model)
     data.qpos[:7] = (-8.5, 0.0, 0.408, 1.0, 0.0, 0.0, 0.0)
     mujoco.mj_forward(model, data)
@@ -85,7 +89,11 @@ def run_episode(
             mechanical_parameters
         ),
     )
-    controller = JointTerrainController(float(model.opt.timestep), parameters)
+    controller = JointTerrainController(
+        float(model.opt.timestep),
+        parameters,
+        balance_gains,
+    )
     ground_heights = sample_preview_ground_heights(
         model, data, wheel_body_ids, 0.0, parameters
     )

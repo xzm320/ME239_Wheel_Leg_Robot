@@ -91,8 +91,10 @@ explicit high-speed drivetrain upgrade rather than a controller-only change.
 The larger wheels retain the lightweight 0.2385 kg design mass but have higher
 rotational inertia from their 120 mm radius. Wheel-joint damping is explicitly
 0.005 N·m·s/rad; the inherited 0.15 value would dissipate 27.8 N·m at 80 km/h
-and was therefore not a physically valid high-speed bearing model. Continuous
-motor and thermal limits are not yet modeled.
+and was therefore not a physically valid high-speed bearing model. The medium
+terrain controller deliberately restores 0.15 N·m·s/rad as low-speed active
+motor damping, while the high-speed controller uses the 0.005 mechanical
+bearing value. Continuous motor and thermal limits are not yet modeled.
 
 Link collision is intentionally disabled in this mechanism-validation model
 to prevent adjacent capsules at ideal pin joints from self-penetrating.

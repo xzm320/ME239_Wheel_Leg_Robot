@@ -24,12 +24,14 @@ from PIL import Image, ImageDraw, ImageFont
 if __package__:
     from scripts.joint_terrain_controller import (
         JointTerrainController,
+        apply_wheel_joint_damping,
         medium_terrain_speed_profile,
         sample_preview_ground_heights,
     )
 else:
     from joint_terrain_controller import (
         JointTerrainController,
+        apply_wheel_joint_damping,
         medium_terrain_speed_profile,
         sample_preview_ground_heights,
     )
@@ -102,6 +104,7 @@ def render(output_directory: Path) -> tuple[Path, Path]:
     chart_path = output_directory / "joint_control_medium_metrics_v3.png"
 
     model = mujoco.MjModel.from_xml_path(str(MODEL_PATH))
+    apply_wheel_joint_damping(model, 0.15)
     data = mujoco.MjData(model)
     data.qpos[:7] = (-8.5, 0.0, 0.408, 1.0, 0.0, 0.0, 0.0)
     mujoco.mj_forward(model, data)
