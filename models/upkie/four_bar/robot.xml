@@ -207,14 +207,14 @@ http://www.apache.org/licenses/LICENSE-2.0
               ctrlrange="-0.65 0.65" forcerange="-16 16"/>
     <position name="left_strut" joint="left_strut_extension" kp="2500" kv="45"
               ctrlrange="-0.064 0.064" forcerange="-250 250"/>
-    <velocity name="left_wheel" joint="left_wheel_joint" kv="0.05"
-              ctrlrange="-120 120" forcerange="-1.7 1.7"/>
+    <motor name="left_wheel" joint="left_wheel_joint"
+           ctrlrange="-6 6" forcerange="-6 6"/>
     <position name="right_hip" joint="right_hip" kp="30" kv="1.5"
               ctrlrange="-0.65 0.65" forcerange="-16 16"/>
     <position name="right_strut" joint="right_strut_extension" kp="2500" kv="45"
               ctrlrange="-0.064 0.064" forcerange="-250 250"/>
-    <velocity name="right_wheel" joint="right_wheel_joint" kv="0.05"
-              ctrlrange="-120 120" forcerange="-1.7 1.7"/>
+    <motor name="right_wheel" joint="right_wheel_joint"
+           ctrlrange="-6 6" forcerange="-6 6"/>
   </actuator>
 
   <sensor>

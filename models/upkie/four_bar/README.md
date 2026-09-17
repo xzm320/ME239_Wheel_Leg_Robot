@@ -55,10 +55,16 @@ The model is 5.6185 kg. Per-leg moving mass is held within 1 g of the imported
 Upkie baseline by redistributing the original limb mass over four links, the
 telescopic assembly, wheel node, and wheel.
 
+The baseline 1.7 N·m wheel velocity servos are replaced by direct-drive motor
+actuators with a symmetric ±6 N·m peak torque limit. Direct torque input is
+required by the cascaded balance controller, and the higher peak limit is an
+explicit high-speed drivetrain upgrade rather than a controller-only change.
+Continuous motor and thermal limits are not yet modeled.
+
 Link collision is intentionally disabled in this mechanism-validation model
 to prevent adjacent capsules at ideal pin joints from self-penetrating.
 Wheel and trunk collision remain active. Dedicated link collision shapes will
 be introduced when the rough-terrain module defines clearance requirements.
 
-The current gains are engineering initial values. They are not the final
-high-speed control gains and have not yet been optimized against terrain.
+The flat-ground controller gains are deterministic initial values. They are
+not yet optimized against terrain or motor thermal constraints.
