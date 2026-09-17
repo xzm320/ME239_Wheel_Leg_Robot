@@ -111,11 +111,10 @@ def _latin_hypercube(count: int, seed: int) -> list[ComplianceParameters]:
 
 def tune(sample_count: int = 48, seed: int = 20260917) -> dict[str, object]:
     baseline = ComplianceParameters(6500, 70, 12000, 120, 1500, 25)
-    recommended = ComplianceParameters(7100, 48, 7800, 165, 900, 50)
+    recommended = ComplianceParameters(3000, 100, 7000, 180, 800, 50)
     anchors = [
         baseline,
         recommended,
-        ComplianceParameters(3000, 100, 7000, 180, 800, 50),
         ComplianceParameters(5000, 90, 9000, 160, 1200, 40),
         ComplianceParameters(8000, 120, 8000, 150, 1500, 45),
     ]

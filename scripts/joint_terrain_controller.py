@@ -24,7 +24,7 @@ class TerrainControlGains:
     stage_min_m: float = -0.020
     stage_max_m: float = 0.094
     stage_rate_limit_m_s: float = 0.30
-    strut_spring_compensation: float = 1.45
+    strut_spring_compensation: float = 1.40
     height_kp: float = 0.40
     height_kd: float = 0.10
     roll_kp: float = 0.290419
@@ -40,11 +40,11 @@ class TerrainControlGains:
 class ComplianceParameters:
     """Mechanical compliance values shared by both sides."""
 
-    hip_x_stiffness_n_m: float = 7100.0
-    hip_x_damping_n_s_m: float = 48.0
-    hip_z_stiffness_n_m: float = 7800.0
-    hip_z_damping_n_s_m: float = 165.0
-    strut_equivalent_stiffness_n_m: float = 900.0
+    hip_x_stiffness_n_m: float = 3000.0
+    hip_x_damping_n_s_m: float = 100.0
+    hip_z_stiffness_n_m: float = 7000.0
+    hip_z_damping_n_s_m: float = 180.0
+    strut_equivalent_stiffness_n_m: float = 800.0
     strut_equivalent_damping_n_s_m: float = 50.0
 
 

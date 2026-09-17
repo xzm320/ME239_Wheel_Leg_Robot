@@ -110,7 +110,7 @@ def render(output_directory: Path) -> tuple[Path, Path]:
 
                 if not servos_disabled:
                     # Compensate the 1500 N/m passive spring at static equilibrium.
-                    data.ctrl[actuator_ids] = desired * 1.45
+                    data.ctrl[actuator_ids] = desired * 1.40
 
                 mujoco.mj_step(model, data)
                 if not np.isfinite(data.qpos).all():

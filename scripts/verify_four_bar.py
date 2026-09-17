@@ -79,9 +79,9 @@ def verify() -> dict[str, object]:
         # A half-cosine ramp avoids injecting an unrealistic command step.
         ramp_ratio = min(step * model.opt.timestep / 0.4, 1.0)
         ramp = 0.5 - 0.5 * math.cos(math.pi * ramp_ratio)
-        # Both synchronized stages carry a 1800 N/m spring. The first-stage
-        # servo therefore sees 3600 N/m through the 1:1 synchronization.
-        feedforward_command = desired_extension * ramp * (1.0 + 3600.0 / 8000.0)
+        # Both synchronized stages carry a 1600 N/m spring. The first-stage
+        # servo therefore sees 3200 N/m through the 1:1 synchronization.
+        feedforward_command = desired_extension * ramp * (1.0 + 3200.0 / 8000.0)
         data.ctrl[actuator_ids] = feedforward_command
         mujoco.mj_step(model, data)
         max_closure_error = max(
@@ -159,7 +159,7 @@ def verify() -> dict[str, object]:
     passive_force = float(
         force_data.qfrc_passive[int(model.jnt_dofadr[left_stage_joint_ids[0]])]
     )
-    assert math.isclose(passive_force, -18.0, abs_tol=1e-9)
+    assert math.isclose(passive_force, -16.0, abs_tol=1e-9)
 
     # Restore a gravity-loaded model and check wheel contact stability.
     contact_model = mujoco.MjModel.from_xml_path(str(MODEL_PATH))

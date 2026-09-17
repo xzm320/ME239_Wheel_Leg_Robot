@@ -28,9 +28,9 @@ leave its sleeve:
 
 | Property | Value |
 | --- | ---: |
-| Equivalent passive stiffness | 900 N/m |
+| Equivalent passive stiffness | 800 N/m |
 | Equivalent passive damping | 50 N·s/m |
-| Per-stage stiffness/damping | 1800 N/m / 100 N·s/m |
+| Per-stage stiffness/damping | 1600 N/m / 100 N·s/m |
 | Position-servo stiffness/damping | 8000 N/m / 100 N·s/m |
 | Actuator force limit | ±700 N |
 | Per-stage physical range | -20 to +94 mm |
@@ -42,7 +42,7 @@ can push and pull; it is not modeled as a tension-only cable.
 
 Because both synchronized stage springs load the first-stage actuator, a
 desired per-stage extension `q_des` needs the static feed-forward command
-`ctrl = (1 + 3600 / 8000) * q_des = 1.45 * q_des`.
+`ctrl = (1 + 3200 / 8000) * q_des = 1.40 * q_des`.
 
 Positive crossbar extension widens the diamond and shortens the leg. Negative
 extension narrows it and lengthens the leg.
@@ -53,21 +53,21 @@ physics remain engaged over the complete travel.
 
 ## Tuned passive compliance
 
-The deployed values are rounded engineering values from a seeded 53-candidate
+The deployed values are rounded engineering values from a seeded 52-candidate
 search on the medium terrain at 1.5 m/s:
 
 | Element | Stiffness | Damping |
 | --- | ---: | ---: |
-| Hip carrier x | 7100 N/m | 48 N·s/m |
-| Hip carrier z | 7800 N/m | 165 N·s/m |
-| Complete telescopic crossbar | 900 N/m | 50 N·s/m |
+| Hip carrier x | 3000 N/m | 100 N·s/m |
+| Hip carrier z | 7000 N/m | 180 N·s/m |
+| Complete telescopic crossbar | 800 N/m | 50 N·s/m |
 
 The multi-objective score includes center-of-mass height variation, vertical
 acceleration, attitude, speed tracking, and strut force. Relative to the prior
 6500/70, 12000/120, and 1500/25 values, the rounded result reduces RMS
-vertical acceleration by about 45%, its 95th percentile by about 71%, and
-95th-percentile strut force by about 36%. Center-of-mass standard deviation
-changes from 10.94 to 11.00 mm, so the impact reduction is not obtained by
+vertical acceleration by about 45%, its 95th percentile by about 73%, and
+95th-percentile strut force by about 41%. Center-of-mass standard deviation
+changes from 10.94 to 11.02 mm, so the impact reduction is not obtained by
 allowing materially larger body-height motion. Reproduce the search with
 `uv run python scripts/tune_compliance.py`.
 
