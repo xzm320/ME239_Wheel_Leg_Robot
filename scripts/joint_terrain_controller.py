@@ -37,9 +37,12 @@ class TerrainControlGains:
     yaw_kd: float = 1.0
     roll_torque_kp: float = 0.0
     roll_torque_kd: float = 0.0
+    roll_torque_ki: float = 0.0
+    roll_integral_limit: float = 0.4
     differential_torque_limit_nm: float = 2.5
     preview_base_m: float = 0.080
     preview_time_s: float = 0.030
+    preview_symmetry: float = 0.0
 
 
 @dataclass(frozen=True)
@@ -61,6 +64,30 @@ HIGH_SPEED_COMPLIANCE = ComplianceParameters(
     hip_z_damping_n_s_m=220.0,
     strut_equivalent_stiffness_n_m=800.0,
     strut_equivalent_damping_n_s_m=60.0,
+)
+
+HUNDRED_KMH_COMPLIANCE = ComplianceParameters(
+    hip_x_stiffness_n_m=3000.0,
+    hip_x_damping_n_s_m=100.0,
+    hip_z_stiffness_n_m=7000.0,
+    hip_z_damping_n_s_m=180.0,
+    strut_equivalent_stiffness_n_m=800.0,
+    strut_equivalent_damping_n_s_m=50.0,
+)
+HUNDRED_KMH_HINGE_DAMPING_N_M_S_RAD = 0.15
+FOUR_BAR_HINGE_JOINTS = (
+    "left_hip",
+    "left_front_knee_hinge",
+    "left_rear_hip_hinge",
+    "left_rear_knee_hinge",
+    "left_strut_angle",
+    "left_front_bottom_hinge",
+    "right_hip",
+    "right_front_knee_hinge",
+    "right_rear_hip_hinge",
+    "right_rear_knee_hinge",
+    "right_strut_angle",
+    "right_front_bottom_hinge",
 )
 
 
@@ -144,6 +171,23 @@ def apply_compliance_parameters(
                 raise ValueError(f"MuJoCo joint not found: {joint_name}")
             model.jnt_stiffness[joint_id] = stiffness
             model.dof_damping[int(model.jnt_dofadr[joint_id])] = damping
+
+
+def apply_four_bar_hinge_damping(
+    model: mujoco.MjModel,
+    damping_n_m_s_rad: float,
+) -> None:
+    """Raise diamond-linkage hinge damping without touching the wheels."""
+
+    for joint_name in FOUR_BAR_HINGE_JOINTS:
+        joint_id = mujoco.mj_name2id(
+            model, mujoco.mjtObj.mjOBJ_JOINT, joint_name
+        )
+        if joint_id < 0:
+            raise ValueError(f"MuJoCo joint not found: {joint_name}")
+        model.dof_damping[int(model.jnt_dofadr[joint_id])] = (
+            damping_n_m_s_rad
+        )
 
 
 def apply_wheel_joint_damping(
@@ -230,9 +274,11 @@ class JointTerrainController:
         self.gains = gains or TerrainControlGains()
         self.balance = BalanceSpeedController(timestep, balance_gains)
         self.stage_targets = np.zeros(2)
+        self.roll_integral = 0.0
 
     def reset(self) -> None:
         self.balance.reset()
+        self.roll_integral = 0.0
         self.stage_targets[:] = 0.0
 
     def update(
@@ -256,12 +302,20 @@ class JointTerrainController:
             pitch_rate_rad_s=float(angular_velocity_xyz[1]),
         )
 
+        self.roll_integral = float(
+            np.clip(
+                self.roll_integral + roll * self.timestep,
+                -gains.roll_integral_limit,
+                gains.roll_integral_limit,
+            )
+        )
         differential_torque = float(
             np.clip(
                 gains.yaw_kp * yaw
                 + gains.yaw_kd * float(angular_velocity_xyz[2])
                 + gains.roll_torque_kp * roll
-                + gains.roll_torque_kd * float(angular_velocity_xyz[0]),
+                + gains.roll_torque_kd * float(angular_velocity_xyz[0])
+                + gains.roll_torque_ki * self.roll_integral,
                 -gains.differential_torque_limit_nm,
                 gains.differential_torque_limit_nm,
             )
@@ -295,15 +349,20 @@ class JointTerrainController:
             gains.roll_kp * roll
             + gains.roll_kd * float(angular_velocity_xyz[0])
         )
+        mean_preview = float(np.mean(preview_ground_heights_m))
+        blended_preview = (
+            (1.0 - gains.preview_symmetry) * preview_ground_heights_m
+            + gains.preview_symmetry * mean_preview
+        )
         nominal_hip_height = gains.target_trunk_height_m + gains.hip_offset_z_m
         leg_heights = np.array(
             (
                 nominal_hip_height
-                - (preview_ground_heights_m[0] + gains.wheel_radius_m)
+                - (blended_preview[0] + gains.wheel_radius_m)
                 + height_correction
                 - roll_correction,
                 nominal_hip_height
-                - (preview_ground_heights_m[1] + gains.wheel_radius_m)
+                - (blended_preview[1] + gains.wheel_radius_m)
                 + height_correction
                 + roll_correction,
             )
@@ -365,7 +424,8 @@ def sample_preview_ground_heights(
             None,
         )
         if distance < 0.0:
-            raise RuntimeError("terrain preview ray did not hit group 3")
+            heights[index] = 0.0
+            continue
         heights[index] = ray_origin_z - distance
     return heights
 

@@ -1,10 +1,9 @@
 #!/usr/bin/env python3
-"""Render the selected 10 m/s robust rough-track validation."""
+"""Render 100 km/h PID from the close side-follow camera."""
 
 from __future__ import annotations
 
 import argparse
-import math
 import os
 import shutil
 import subprocess
@@ -18,71 +17,73 @@ import numpy as np
 from PIL import Image, ImageDraw, ImageFont
 
 if __package__:
+    from scripts.balance_controller import BalanceSpeedController, quaternion_pitch
     from scripts.high_speed_evaluation import (
         MODEL_PATH,
         START_X_M,
-        WHEEL_RADIUS_M,
-        high_speed_balance_gains,
-        high_speed_terrain_gains,
+        TARGET_100_KMH_M_S,
+        hundred_kmh_balance_gains,
+        hundred_kmh_heading_torque_nm,
     )
     from scripts.joint_terrain_controller import (
-        HIGH_SPEED_COMPLIANCE,
-        JointTerrainController,
+        HUNDRED_KMH_COMPLIANCE,
         apply_compliance_parameters,
-        sample_preview_ground_heights,
+        quaternion_roll_yaw,
     )
 else:
+    from balance_controller import BalanceSpeedController, quaternion_pitch
     from high_speed_evaluation import (
         MODEL_PATH,
         START_X_M,
-        WHEEL_RADIUS_M,
-        high_speed_balance_gains,
-        high_speed_terrain_gains,
+        TARGET_100_KMH_M_S,
+        hundred_kmh_balance_gains,
+        hundred_kmh_heading_torque_nm,
     )
     from joint_terrain_controller import (
-        HIGH_SPEED_COMPLIANCE,
-        JointTerrainController,
+        HUNDRED_KMH_COMPLIANCE,
         apply_compliance_parameters,
-        sample_preview_ground_heights,
+        quaternion_roll_yaw,
     )
 
-TARGET_SPEED_M_S = 10.0
+ACCEL_M_S2 = 0.70
 FPS = 24
-DURATION_S = 12.0
+RECORD_START_S = 36.0
+DURATION_S = 64.0
 
 
-def _ids(
-    model: mujoco.MjModel,
-    object_type: int,
-    names: tuple[str, ...],
-) -> list[int]:
-    return [
-        mujoco.mj_name2id(model, object_type, name)
-        for name in names
-    ]
+def _ids(model: mujoco.MjModel, object_type: int, names: tuple[str, ...]) -> list[int]:
+    return [mujoco.mj_name2id(model, object_type, name) for name in names]
 
 
 def _annotate(
     pixels: np.ndarray,
+    *,
     speed: float,
+    target: float,
     distance: float,
-    com_error_mm: float,
+    pitch_deg: float,
+    roll_deg: float,
 ) -> np.ndarray:
     image = Image.fromarray(pixels)
     draw = ImageDraw.Draw(image, "RGBA")
     font_path = "/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf"
-    large = ImageFont.truetype(font_path, 25)
-    small = ImageFont.truetype(font_path, 18)
-    draw.rounded_rectangle((18, 16, 360, 96), radius=8, fill=(0, 0, 0, 165))
+    large = ImageFont.truetype(font_path, 22)
+    small = ImageFont.truetype(font_path, 17)
+    draw.rounded_rectangle((14, 12, 470, 92), radius=8, fill=(0, 0, 0, 170))
     draw.text(
-        (32, 24),
-        "ROBUST SPEED: 10.0 m/s (36 km/h)",
+        (26, 18),
+        "PID  100 km/h  ROUGH TRACK",
         font=large,
         fill=(255, 255, 255, 255),
     )
     draw.text(
-        (32, 60),
-        f"v={speed:.2f} m/s  distance={distance:.1f} m  COM dz={com_error_mm:+.1f} mm",
+        (26, 52),
+        (
+            f"v={speed:.1f}/{target:.1f} m/s  "
+            f"{speed * 3.6:.0f} km/h  "
+            f"d={distance:.0f} m  "
+            f"pitch={pitch_deg:+.1f}°  roll={roll_deg:+.1f}°"
+        ),
         font=small,
         fill=(170, 225, 255, 255),
     )
@@ -93,144 +94,100 @@ def render(output_directory: Path) -> Path:
     if shutil.which("ffmpeg") is None:
         raise RuntimeError("ffmpeg is required to encode the demonstration")
     output_directory.mkdir(parents=True, exist_ok=True)
-    output_path = output_directory / "high_speed_rough_track_10mps_v1.mp4"
+    output_path = output_directory / "high_speed_rough_track_100kmh_v1.mp4"
 
     model = mujoco.MjModel.from_xml_path(str(MODEL_PATH))
-    apply_compliance_parameters(model, HIGH_SPEED_COMPLIANCE)
+    apply_compliance_parameters(model, HUNDRED_KMH_COMPLIANCE)
     data = mujoco.MjData(model)
     data.qpos[:7] = (START_X_M, 0.0, 0.408, 1.0, 0.0, 0.0, 0.0)
     mujoco.mj_forward(model, data)
     wheel_actuators = _ids(
-        model,
-        mujoco.mjtObj.mjOBJ_ACTUATOR,
-        ("left_wheel", "right_wheel"),
+        model, mujoco.mjtObj.mjOBJ_ACTUATOR, ("left_wheel", "right_wheel")
     )
-    strut_actuators = _ids(
-        model,
-        mujoco.mjtObj.mjOBJ_ACTUATOR,
-        ("left_strut", "right_strut"),
-    )
-    wheel_bodies = tuple(
-        _ids(
-            model,
-            mujoco.mjtObj.mjOBJ_BODY,
-            ("left_wheel_node", "right_wheel_node"),
-        )
-    )
-    wheel_joints = _ids(
-        model,
-        mujoco.mjtObj.mjOBJ_JOINT,
-        ("left_wheel_joint", "right_wheel_joint"),
-    )
-    trunk_body = mujoco.mj_name2id(
-        model, mujoco.mjtObj.mjOBJ_BODY, "trunk"
-    )
-    terrain_gains = high_speed_terrain_gains(HIGH_SPEED_COMPLIANCE)
-    controller = JointTerrainController(
+    controller = BalanceSpeedController(
         float(model.opt.timestep),
-        terrain_gains,
-        high_speed_balance_gains(),
+        hundred_kmh_balance_gains(),
     )
-    ground = sample_preview_ground_heights(
-        model, data, wheel_bodies, 0.0, terrain_gains
-    )
-    for _ in range(round(1.0 / model.opt.timestep)):
-        output = controller.update(
-            target_speed_m_s=0.0,
-            forward_speed_m_s=float(data.qvel[0]),
-            trunk_height_m=float(data.qpos[2]),
-            vertical_speed_m_s=float(data.qvel[2]),
-            quaternion_wxyz=data.qpos[3:7],
-            angular_velocity_xyz=data.qvel[3:6],
-            preview_ground_heights_m=ground,
-        )
-        data.ctrl[wheel_actuators] = output.wheel_torques_nm
-        data.ctrl[strut_actuators] = output.strut_controls_m
-        mujoco.mj_step(model, data)
-
-    data.qvel[:] = 0.0
-    data.qvel[0] = TARGET_SPEED_M_S
-    for joint_id in wheel_joints:
-        data.qvel[int(model.jnt_dofadr[joint_id])] = (
-            TARGET_SPEED_M_S / WHEEL_RADIUS_M
-        )
-    mujoco.mj_forward(model, data)
-    controller = JointTerrainController(
-        float(model.opt.timestep),
-        terrain_gains,
-        high_speed_balance_gains(),
-    )
-    initial_com_height = float(data.subtree_com[trunk_body, 2])
 
     camera = mujoco.MjvCamera()
     camera.type = mujoco.mjtCamera.mjCAMERA_FREE
-    camera.distance = 5.0
+    camera.distance = 3.0
     camera.azimuth = 116
-    camera.elevation = -18
+    camera.elevation = -20
     scene_option = mujoco.MjvOption()
     scene_option.geomgroup[3] = 1
 
     with tempfile.TemporaryDirectory(prefix="high_speed_demo_") as temporary:
         frame_directory = Path(temporary)
         frame_index = 0
-        next_frame_time = 0.0
-        ground = sample_preview_ground_heights(
-            model,
-            data,
-            wheel_bodies,
-            TARGET_SPEED_M_S,
-            terrain_gains,
-        )
+        next_frame_time = RECORD_START_S
+        still_path = output_directory / "high_speed_rough_track_100kmh_v1.png"
         with mujoco.Renderer(model, height=540, width=800) as renderer:
-            for step in range(round(DURATION_S / model.opt.timestep)):
-                if step % 5 == 0:
-                    ground = sample_preview_ground_heights(
-                        model,
-                        data,
-                        wheel_bodies,
-                        float(data.qvel[0]),
-                        terrain_gains,
-                    )
-                output = controller.update(
-                    target_speed_m_s=TARGET_SPEED_M_S,
-                    forward_speed_m_s=float(data.qvel[0]),
-                    trunk_height_m=float(data.qpos[2]),
-                    vertical_speed_m_s=float(data.qvel[2]),
-                    quaternion_wxyz=data.qpos[3:7],
-                    angular_velocity_xyz=data.qvel[3:6],
-                    preview_ground_heights_m=ground,
+            for _ in range(round(DURATION_S / model.opt.timestep)):
+                time_s = float(data.time)
+                target = (
+                    0.0
+                    if time_s < 1.0
+                    else min(TARGET_100_KMH_M_S, ACCEL_M_S2 * (time_s - 1.0))
                 )
-                data.ctrl[wheel_actuators] = output.wheel_torques_nm
-                data.ctrl[strut_actuators] = output.strut_controls_m
+                pitch = quaternion_pitch(data.qpos[3:7])
+                roll, yaw = quaternion_roll_yaw(data.qpos[3:7])
+                output = controller.update(
+                    target_speed_m_s=target,
+                    forward_speed_m_s=float(data.qvel[0]),
+                    pitch_rad=pitch,
+                    pitch_rate_rad_s=float(data.qvel[4]),
+                )
+                heading_torque = hundred_kmh_heading_torque_nm(
+                    lateral_m=float(data.qpos[1]),
+                    lateral_speed_m_s=float(data.qvel[1]),
+                    yaw_rad=yaw,
+                    yaw_rate_rad_s=float(data.qvel[5]),
+                    roll_rate_rad_s=float(data.qvel[3]),
+                    forward_speed_m_s=float(data.qvel[0]),
+                )
+                data.ctrl[wheel_actuators] = (
+                    output.wheel_torque_nm + heading_torque,
+                    output.wheel_torque_nm - heading_torque,
+                )
                 mujoco.mj_step(model, data)
+                roll, _ = quaternion_roll_yaw(data.qpos[3:7])
+                pitch = quaternion_pitch(data.qpos[3:7])
 
-                if data.time - 1.0 + 1e-9 >= next_frame_time:
-                    camera.lookat[:] = (
-                        float(data.qpos[0]) + 1.2,
-                        float(data.qpos[1]),
-                        0.20,
-                    )
-                    renderer.update_scene(
-                        data,
-                        camera=camera,
-                        scene_option=scene_option,
-                    )
-                    pixels = _annotate(
-                        renderer.render(),
-                        float(data.qvel[0]),
-                        float(data.qpos[0] - START_X_M),
-                        (
-                            float(data.subtree_com[trunk_body, 2])
-                            - initial_com_height
-                        )
-                        * 1000.0,
-                    )
-                    Image.fromarray(pixels).save(
-                        frame_directory / f"frame_{frame_index:04d}.ppm"
-                    )
-                    frame_index += 1
-                    next_frame_time = frame_index / FPS
+                if data.qpos[2] < 0.14 or abs(roll) > 0.40:
+                    break
+                if time_s + 1e-9 < next_frame_time:
+                    continue
 
+                camera.lookat[:] = (
+                    float(data.qpos[0]) + 0.45,
+                    float(data.qpos[1]),
+                    0.24,
+                )
+                renderer.update_scene(
+                    data, camera=camera, scene_option=scene_option
+                )
+                pixels = _annotate(
+                    renderer.render(),
+                    speed=float(data.qvel[0]),
+                    target=target,
+                    distance=float(data.qpos[0] - START_X_M),
+                    pitch_deg=float(np.degrees(pitch)),
+                    roll_deg=float(np.degrees(roll)),
+                )
+                Image.fromarray(pixels).save(
+                    frame_directory / f"frame_{frame_index:04d}.ppm"
+                )
+                if frame_index == 48:
+                    Image.fromarray(pixels).save(still_path)
+                frame_index += 1
+                next_frame_time = RECORD_START_S + frame_index / FPS
+
+        if frame_index < 8:
+            raise RuntimeError("high-speed render produced too few frames")
+        if not still_path.exists():
+            last_frame = frame_directory / f"frame_{frame_index - 1:04d}.ppm"
+            Image.open(last_frame).save(still_path)
         subprocess.run(
             [
                 "ffmpeg",
@@ -252,6 +209,7 @@ def render(output_directory: Path) -> Path:
             check=True,
         )
     print(output_path)
+    print(still_path)
     return output_path
 
 

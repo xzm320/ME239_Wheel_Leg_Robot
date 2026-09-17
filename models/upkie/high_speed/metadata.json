@@ -1,18 +1,19 @@
 {
   "amplitude_limit_m": 0.03,
   "grid": {
-    "columns": 6001,
+    "columns": 12001,
     "rows": 61
   },
   "metrics": {
-    "flat_launch_end_x_m": -275.0,
-    "length_m": 600.0,
+    "flat_launch_end_x_m": -400.0,
+    "flat_pad_each_side_m": 500.0,
+    "length_m": 3000.0,
     "maximum_height_m": 0.03,
-    "maximum_slope_deg": 0.13599467554618339,
-    "minimum_height_m": -0.013907897441147376,
-    "resolution_m": 0.10000000000002274,
-    "rms_height_m": 0.016069985785919557,
-    "rough_start_x_m": -260.0,
+    "maximum_slope_deg": 0.26817600836544836,
+    "minimum_height_m": -0.01999121370268526,
+    "resolution_m": 0.25,
+    "rms_height_m": 0.012706495261003311,
+    "rough_start_x_m": -370.0,
     "width_m": 6.0
   },
   "seed": 8080

@@ -13,9 +13,12 @@ import numpy as np
 
 ROOT = Path(__file__).resolve().parents[1]
 OUTPUT_DIRECTORY = ROOT / "models" / "upkie" / "high_speed"
-LENGTH_M = 600.0
+LENGTH_M = 3000.0
+INNER_LENGTH_M = 2000.0
+INNER_NX = 8001
+PAD_NX = 2000
 WIDTH_M = 6.0
-NX = 6001
+NX = INNER_NX + 2 * PAD_NX
 NY = 61
 AMPLITUDE_M = 0.030
 SEED = 8080
@@ -39,32 +42,35 @@ def _smooth_noise(
 
 def generate_heightfield() -> tuple[np.ndarray, dict[str, float]]:
     rng = np.random.default_rng(SEED)
-    x = np.linspace(-LENGTH_M / 2.0, LENGTH_M / 2.0, NX)
+    inner_x = np.linspace(-INNER_LENGTH_M / 2.0, INNER_LENGTH_M / 2.0, INNER_NX)
     y = np.linspace(-WIDTH_M / 2.0, WIDTH_M / 2.0, NY)
-    dx = float(x[1] - x[0])
-    base = 0.014 * _smooth_noise(rng, NX, 10.0 / dx)
+    dx = float(inner_x[1] - inner_x[0])
+    base = 0.014 * _smooth_noise(rng, INNER_NX, 10.0 / dx)
 
     # Long rounded crests remain meaningful at high speed without becoming
     # step impacts whose acceleration tends toward an impulse.
-    for center in np.linspace(-240.0, 240.0, 28):
-        shifted_center = center + rng.uniform(-3.0, 3.0)
+    for center in np.linspace(-350.0, 750.0, 64):
+        shifted_center = center + rng.uniform(-4.0, 4.0)
         height = rng.uniform(-0.016, 0.026)
-        width = rng.uniform(5.0, 12.0)
-        base += height * np.exp(-0.5 * ((x - shifted_center) / width) ** 2)
+        width = rng.uniform(3.5, 8.0)
+        base += height * np.exp(-0.5 * ((inner_x - shifted_center) / width) ** 2)
 
-    envelope = np.ones_like(x)
-    envelope[x < -275.0] = 0.0
-    transition = (x >= -275.0) & (x < -260.0)
-    ratio = (x[transition] + 275.0) / 15.0
+    envelope = np.ones_like(inner_x)
+    envelope[inner_x < -400.0] = 0.0
+    transition = (inner_x >= -400.0) & (inner_x < -370.0)
+    ratio = (inner_x[transition] + 400.0) / 30.0
     envelope[transition] = 0.5 - 0.5 * np.cos(math.pi * ratio)
-    envelope[x > 275.0] = 0.0
-    transition = (x > 260.0) & (x <= 275.0)
-    ratio = (x[transition] - 260.0) / 15.0
+    envelope[inner_x > 850.0] = 0.0
+    transition = (inner_x > 820.0) & (inner_x <= 850.0)
+    ratio = (inner_x[transition] - 820.0) / 30.0
     envelope[transition] = 0.5 + 0.5 * np.cos(math.pi * ratio)
     base *= envelope
 
+    padded = np.zeros(NX, dtype=base.dtype)
+    padded[PAD_NX : PAD_NX + INNER_NX] = base
+    x = np.linspace(-LENGTH_M / 2.0, LENGTH_M / 2.0, NX)
     heights = np.clip(
-        np.broadcast_to(base, (NY, NX)),
+        np.broadcast_to(padded, (NY, NX)),
         -AMPLITUDE_M,
         AMPLITUDE_M,
     )
@@ -73,7 +79,7 @@ def generate_heightfield() -> tuple[np.ndarray, dict[str, float]]:
         float(y[1] - y[0]),
         dx,
     )
-    active = (x >= -260.0) & (x <= 260.0)
+    active = (x >= -370.0) & (x <= 820.0)
     return heights, {
         "length_m": LENGTH_M,
         "width_m": WIDTH_M,
@@ -95,8 +101,9 @@ def generate_heightfield() -> tuple[np.ndarray, dict[str, float]]:
                 )
             )
         ),
-        "flat_launch_end_x_m": -275.0,
-        "rough_start_x_m": -260.0,
+        "flat_launch_end_x_m": -400.0,
+        "rough_start_x_m": -370.0,
+        "flat_pad_each_side_m": PAD_NX * dx,
     }
 
 
@@ -142,14 +149,14 @@ def generate() -> dict[str, object]:
   </visual>
   <asset>
     <hfield name="high_speed_track" file="heightfield.png"
-            size="300 3 {vertical_scale:.6f} 0.10"/>
+            size="1500 3 {vertical_scale:.6f} 0.10"/>
     <texture type="skybox" builtin="gradient" rgb1="0.42 0.58 0.76"
              rgb2="0.05 0.06 0.08" width="512" height="3072"/>
     <texture type="2d" name="track_grid" builtin="checker" mark="edge"
              rgb1="0.55 0.44 0.24" rgb2="0.25 0.18 0.09"
              markrgb="0.95 0.88 0.62" width="512" height="512"/>
     <material name="track" texture="track_grid" texuniform="true"
-              texrepeat="300 6" reflectance="0.06"/>
+              texrepeat="750 6" reflectance="0.06"/>
   </asset>
   <worldbody>
     <light pos="-5 -4 8" dir="0.3 0.2 -1" directional="true"/>
