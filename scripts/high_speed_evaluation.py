@@ -10,7 +10,14 @@ import mujoco
 import numpy as np
 
 if __package__:
-    from scripts.balance_controller import BalanceGains, BalanceSpeedController, quaternion_pitch
+    from scripts.balance_controller import (
+        BalanceGains,
+        BalanceSpeedController,
+        heading_torque_nm,
+        quaternion_pitch,
+        wide_car_balance_gains,
+        wide_car_heading_gains,
+    )
     from scripts.joint_terrain_controller import (
         ComplianceParameters,
         HUNDRED_KMH_COMPLIANCE,
@@ -25,7 +32,14 @@ if __package__:
         strut_spring_compensation,
     )
 else:
-    from balance_controller import BalanceGains, BalanceSpeedController, quaternion_pitch
+    from balance_controller import (
+        BalanceGains,
+        BalanceSpeedController,
+        heading_torque_nm,
+        quaternion_pitch,
+        wide_car_balance_gains,
+        wide_car_heading_gains,
+    )
     from joint_terrain_controller import (
         ComplianceParameters,
         HUNDRED_KMH_COMPLIANCE,
@@ -104,17 +118,9 @@ def high_speed_terrain_gains(
 
 
 def hundred_kmh_balance_gains() -> BalanceGains:
-    """Lean-limited speed PI that can finish a 100 km/h ramp on the long pad."""
+    """3x-track pad PID. Same set that holds 195 km/h cruise."""
 
-    return BalanceGains(
-        pitch_kp=465.6879,
-        pitch_kd=55.0,
-        speed_kp=0.030,
-        speed_ki=0.0,
-        pitch_reference_limit_rad=0.085,
-        pitch_reference_rate_rad_s=0.15,
-        wheel_torque_limit_nm=6.0,
-    )
+    return wide_car_balance_gains()
 
 
 def hundred_kmh_heading_torque_nm(
@@ -127,20 +133,16 @@ def hundred_kmh_heading_torque_nm(
     roll_rate_rad_s: float,
     forward_speed_m_s: float,
 ) -> float:
-    """Weak yaw hold plus roll PD. Strong yaw differentials roll the 3x track."""
-
-    if forward_speed_m_s < 8.0:
-        return 0.0
-    scale = float(np.clip((forward_speed_m_s - 8.0) / 12.0, 0.0, 1.0))
-    torque = (
-        0.58 * yaw_rad
-        + 0.17 * yaw_rate_rad_s
-        + 0.025 * lateral_m
-        + 0.02 * lateral_speed_m_s
-        - 3.4 * roll_rad
-        - 0.50 * roll_rate_rad_s
+    return heading_torque_nm(
+        wide_car_heading_gains(),
+        lateral_m=lateral_m,
+        lateral_speed_m_s=lateral_speed_m_s,
+        yaw_rad=yaw_rad,
+        yaw_rate_rad_s=yaw_rate_rad_s,
+        roll_rad=roll_rad,
+        roll_rate_rad_s=roll_rate_rad_s,
+        forward_speed_m_s=forward_speed_m_s,
     )
-    return float(np.clip(scale * torque, -0.22, 0.22))
 
 
 def apply_hundred_kmh_suspension(model: mujoco.MjModel) -> None:

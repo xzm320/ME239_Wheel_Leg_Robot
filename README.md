@@ -1,6 +1,6 @@
 # 高速崎岖地面轮腿机器人
 
-MuJoCo 里的轮腿原型：从 Upkie 改出柔顺髋座、菱形四连杆、分级崎岖路面，再用 PID 把 3 倍轮距机体开到约 100 km/h。点开图片可看对应视频。
+MuJoCo 里的轮腿原型：从 Upkie 改出柔顺髋座、菱形四连杆、分级崎岖路面。平地垫上给 3 倍轮距小车和原宽四连杆各调了一套 PID：小车极限 **195 km/h**，原型机 **180 km/h**。点开图片可看对应视频。
 
 ![Unitree 同款 Perlin 褶皱](docs/media/unitree_perlin.png)
 
@@ -42,6 +42,28 @@ MuJoCo 里的轮腿原型：从 Upkie 改出柔顺髋座、菱形四连杆、分
 
 [36 km/h 长赛道](docs/media/high_speed_36kmh.mp4)
 
+### 极限速度（平地垫 PID）
+
+轮毂 ±6 N·m，没有气动阻力，上限是横滚/航向而不是电机功率。速度环 PI 输出目标俯仰，内环俯仰 PD，再加一对轮差的航向/横滚 PD。
+
+| | 3× 轮距小车 | 四连杆原型机 |
+| --- | --- | --- |
+| 轮距 | 682 mm | 227 mm |
+| 极限巡航 | **195 km/h** | **180 km/h** |
+| 再快一点 | 196 km/h 横滚翻车 | 182 km/h 航向空洞 |
+| 俯仰 Kp / Kd | 480 / 70 | 540 / 48 |
+| 速度 Kp / Ki | 0.022 / 0 | 0.024 / 0 |
+| 倾角限幅 | 0.070 rad | 0.085 rad |
+| 航向 yaw Kp/Kd | 0.45 / 0.20 | 0.18 / 0.10 |
+| 横滚 Kp/Kd | 5.0 / 0.70 | 7.2 / 1.05 |
+| 轮差限幅 | ±0.18 N·m | ±0.10 N·m |
+
+窄车更早介入航向、横滚更硬、轮差更小。两套都能从静止以 0.50 m/s² 拉到各自极限。
+
+[![3× 小车 195 km/h](docs/media/wide_car_195kmh.png)](docs/media/wide_car_195kmh.mp4)
+
+[![原型机 180 km/h](docs/media/prototype_180kmh.png)](docs/media/prototype_180kmh.mp4)
+
 ### 100 km/h（3 倍轮距）
 
 轮距 682 mm、甲板 656 mm。在棋盘起飞垫上 PID 能拉到 **100 km/h** 并巡航满 64 s。Unitree 演示那种 1.56 m 基波长 / 6 层褶皱，3 倍轮距下没法像缓坡那样在皱面上巡航。36 km/h 邻域仍在垫上稳定。
@@ -64,6 +86,7 @@ uv run python -m mujoco.viewer --mjcf models/upkie/high_speed/scene.xml
 ```bash
 uv run python scripts/generate_high_speed_track.py
 uv run python scripts/render_unitree_perlin.py --output-directory docs/media
+uv run python scripts/render_speed_limit.py --output-directory docs/media
 uv run python scripts/render_four_bar_demo.py --output-directory docs/media
 uv run python scripts/render_high_speed_demo.py --output-directory docs/media
 ```

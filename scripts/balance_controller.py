@@ -10,7 +10,7 @@ import numpy as np
 
 @dataclass(frozen=True)
 class BalanceGains:
-    """Flat-ground gains found by deterministic batch simulation."""
+    """Cascaded speed PI + pitch PD. Defaults are the 2 m/s flat-ground set."""
 
     pitch_kp: float = 465.6879
     pitch_kd: float = 11.8895
@@ -20,6 +20,101 @@ class BalanceGains:
     pitch_reference_rate_rad_s: float = 0.55173
     speed_integral_limit: float = 2.0
     wheel_torque_limit_nm: float = 6.0
+
+
+@dataclass(frozen=True)
+class HeadingGains:
+    """Differential-wheel lane hold. Signs assume left = +torque, right = -torque."""
+
+    yaw_kp: float = 0.58
+    yaw_kd: float = 0.17
+    lateral_kp: float = 0.025
+    lateral_kd: float = 0.02
+    roll_kp: float = 3.4
+    roll_kd: float = 0.50
+    torque_limit_nm: float = 0.22
+    engage_speed_m_s: float = 8.0
+    blend_speed_m_s: float = 12.0
+
+
+def heading_torque_nm(gains: HeadingGains, **state: float) -> float:
+    speed = state["forward_speed_m_s"]
+    if speed < gains.engage_speed_m_s:
+        return 0.0
+    scale = float(
+        np.clip(
+            (speed - gains.engage_speed_m_s) / max(gains.blend_speed_m_s, 1e-6),
+            0.0,
+            1.0,
+        )
+    )
+    torque = (
+        gains.yaw_kp * state["yaw_rad"]
+        + gains.yaw_kd * state["yaw_rate_rad_s"]
+        + gains.lateral_kp * state["lateral_m"]
+        + gains.lateral_kd * state["lateral_speed_m_s"]
+        - gains.roll_kp * state["roll_rad"]
+        - gains.roll_kd * state["roll_rate_rad_s"]
+    )
+    return float(np.clip(scale * torque, -gains.torque_limit_nm, gains.torque_limit_nm))
+
+
+def wide_car_balance_gains() -> BalanceGains:
+    """3x-track pad cruise. Holds 195 km/h; 196 km/h rolls over."""
+
+    return BalanceGains(
+        pitch_kp=480.0,
+        pitch_kd=70.0,
+        speed_kp=0.022,
+        speed_ki=0.0,
+        pitch_reference_limit_rad=0.070,
+        pitch_reference_rate_rad_s=0.12,
+        wheel_torque_limit_nm=6.0,
+    )
+
+
+def wide_car_heading_gains() -> HeadingGains:
+    return HeadingGains(
+        yaw_kp=0.45,
+        yaw_kd=0.20,
+        lateral_kp=0.04,
+        lateral_kd=0.05,
+        roll_kp=5.0,
+        roll_kd=0.70,
+        torque_limit_nm=0.18,
+        engage_speed_m_s=8.0,
+        blend_speed_m_s=12.0,
+    )
+
+
+def prototype_balance_gains() -> BalanceGains:
+    """1x four-bar prototype. Holds 180 km/h from rest; 182 km/h has a heading hole."""
+
+    return BalanceGains(
+        pitch_kp=540.0,
+        pitch_kd=48.0,
+        speed_kp=0.024,
+        speed_ki=0.0,
+        pitch_reference_limit_rad=0.085,
+        pitch_reference_rate_rad_s=0.12,
+        wheel_torque_limit_nm=6.0,
+    )
+
+
+def prototype_heading_gains() -> HeadingGains:
+    """Narrow 227 mm track: earlier engage, stronger roll, tiny differentials."""
+
+    return HeadingGains(
+        yaw_kp=0.18,
+        yaw_kd=0.10,
+        lateral_kp=0.05,
+        lateral_kd=0.04,
+        roll_kp=7.2,
+        roll_kd=1.05,
+        torque_limit_nm=0.10,
+        engage_speed_m_s=2.5,
+        blend_speed_m_s=5.0,
+    )
 
 
 @dataclass(frozen=True)
