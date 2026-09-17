@@ -2,7 +2,7 @@
   "amplitude_limit_m": 0.03,
   "grid": {
     "columns": 12001,
-    "rows": 61
+    "rows": 321
   },
   "metrics": {
     "flat_launch_end_x_m": -400.0,
@@ -12,9 +12,9 @@
     "maximum_slope_deg": 0.26817600836544836,
     "minimum_height_m": -0.01999121370268526,
     "resolution_m": 0.25,
-    "rms_height_m": 0.012706495261003311,
+    "rms_height_m": 0.01270649526100331,
     "rough_start_x_m": -370.0,
-    "width_m": 6.0
+    "width_m": 32.0
   },
   "seed": 8080
 }

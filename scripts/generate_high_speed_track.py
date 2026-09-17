@@ -17,9 +17,9 @@ LENGTH_M = 3000.0
 INNER_LENGTH_M = 2000.0
 INNER_NX = 8001
 PAD_NX = 2000
-WIDTH_M = 6.0
+WIDTH_M = 32.0
 NX = INNER_NX + 2 * PAD_NX
-NY = 61
+NY = 321
 AMPLITUDE_M = 0.030
 SEED = 8080
 
@@ -149,14 +149,14 @@ def generate() -> dict[str, object]:
   </visual>
   <asset>
     <hfield name="high_speed_track" file="heightfield.png"
-            size="1500 3 {vertical_scale:.6f} 0.10"/>
+            size="1500 16 {vertical_scale:.6f} 0.10"/>
     <texture type="skybox" builtin="gradient" rgb1="0.42 0.58 0.76"
              rgb2="0.05 0.06 0.08" width="512" height="3072"/>
     <texture type="2d" name="track_grid" builtin="checker" mark="edge"
              rgb1="0.55 0.44 0.24" rgb2="0.25 0.18 0.09"
              markrgb="0.95 0.88 0.62" width="512" height="512"/>
     <material name="track" texture="track_grid" texuniform="true"
-              texrepeat="750 6" reflectance="0.06"/>
+              texrepeat="750 32" reflectance="0.06"/>
   </asset>
   <worldbody>
     <light pos="-5 -4 8" dir="0.3 0.2 -1" directional="true"/>

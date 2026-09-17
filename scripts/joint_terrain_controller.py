@@ -70,9 +70,9 @@ HUNDRED_KMH_COMPLIANCE = ComplianceParameters(
     hip_x_stiffness_n_m=3000.0,
     hip_x_damping_n_s_m=100.0,
     hip_z_stiffness_n_m=7000.0,
-    hip_z_damping_n_s_m=180.0,
+    hip_z_damping_n_s_m=220.0,
     strut_equivalent_stiffness_n_m=800.0,
-    strut_equivalent_damping_n_s_m=50.0,
+    strut_equivalent_damping_n_s_m=60.0,
 )
 HUNDRED_KMH_HINGE_DAMPING_N_M_S_RAD = 0.15
 FOUR_BAR_HINGE_JOINTS = (

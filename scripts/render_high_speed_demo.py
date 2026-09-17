@@ -19,9 +19,11 @@ from PIL import Image, ImageDraw, ImageFont
 if __package__:
     from scripts.balance_controller import BalanceSpeedController, quaternion_pitch
     from scripts.high_speed_evaluation import (
+        HUNDRED_KMH_WHEEL_TRACK_SCALE,
         MODEL_PATH,
         START_X_M,
         TARGET_100_KMH_M_S,
+        apply_wheel_track_scale,
         hundred_kmh_balance_gains,
         hundred_kmh_heading_torque_nm,
     )
@@ -33,9 +35,11 @@ if __package__:
 else:
     from balance_controller import BalanceSpeedController, quaternion_pitch
     from high_speed_evaluation import (
+        HUNDRED_KMH_WHEEL_TRACK_SCALE,
         MODEL_PATH,
         START_X_M,
         TARGET_100_KMH_M_S,
+        apply_wheel_track_scale,
         hundred_kmh_balance_gains,
         hundred_kmh_heading_torque_nm,
     )
@@ -47,7 +51,7 @@ else:
 
 ACCEL_M_S2 = 0.70
 FPS = 24
-RECORD_START_S = 36.0
+RECORD_START_S = 44.0
 DURATION_S = 64.0
 
 
@@ -72,7 +76,7 @@ def _annotate(
     draw.rounded_rectangle((14, 12, 470, 92), radius=8, fill=(0, 0, 0, 170))
     draw.text(
         (26, 18),
-        "PID  100 km/h  ROUGH TRACK",
+        "PID  100 km/h  4× WHEEL TRACK",
         font=large,
         fill=(255, 255, 255, 255),
     )
@@ -98,6 +102,7 @@ def render(output_directory: Path) -> Path:
 
     model = mujoco.MjModel.from_xml_path(str(MODEL_PATH))
     apply_compliance_parameters(model, HUNDRED_KMH_COMPLIANCE)
+    apply_wheel_track_scale(model, HUNDRED_KMH_WHEEL_TRACK_SCALE)
     # Large heightfields inflate model extent and clip a 3 m follow camera.
     model.stat.extent = 3.0
     model.vis.map.znear = 0.01
@@ -115,7 +120,7 @@ def render(output_directory: Path) -> Path:
 
     camera = mujoco.MjvCamera()
     camera.type = mujoco.mjtCamera.mjCAMERA_FREE
-    camera.distance = 3.0
+    camera.distance = 3.4
     camera.azimuth = 116
     camera.elevation = -20
     scene_option = mujoco.MjvOption()

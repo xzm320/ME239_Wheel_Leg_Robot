@@ -13,7 +13,9 @@ import mujoco
 
 if __package__:
     from scripts.high_speed_evaluation import (
+        HUNDRED_KMH_WHEEL_TRACK_SCALE,
         MODEL_PATH,
+        NOMINAL_HIP_Y_M,
         WHEEL_RADIUS_M,
         result_dict,
         run_high_speed_episode,
@@ -21,7 +23,9 @@ if __package__:
     )
 else:
     from high_speed_evaluation import (
+        HUNDRED_KMH_WHEEL_TRACK_SCALE,
         MODEL_PATH,
+        NOMINAL_HIP_Y_M,
         WHEEL_RADIUS_M,
         result_dict,
         run_high_speed_episode,
@@ -29,7 +33,7 @@ else:
     )
 
 ROBUST_SPEEDS_M_S = (9.8, 10.0, 10.2)
-ROUGH_START_DISTANCE_M = 580.0
+ROUGH_START_DISTANCE_M = 730.0
 
 
 def verify() -> dict[str, object]:
@@ -42,8 +46,9 @@ def verify() -> dict[str, object]:
     assert selected.com_height_std_mm < 4.0
 
     hundred = run_hundred_kmh_episode()
-    assert hundred.peak_speed_m_s > 26.0
-    assert hundred.distance_m > ROUGH_START_DISTANCE_M
+    assert hundred.wheel_track_scale == HUNDRED_KMH_WHEEL_TRACK_SCALE
+    assert hundred.peak_speed_m_s > 27.5
+    assert hundred.distance_m > 900.0
     assert hundred.maximum_pitch_deg < 8.0
 
     model = mujoco.MjModel.from_xml_path(str(MODEL_PATH))
@@ -71,6 +76,10 @@ def verify() -> dict[str, object]:
         "hundred_kmh_stable": hundred.stable,
         "hundred_kmh_failure": hundred.failure_reason,
         "hundred_kmh_final_y_m": hundred.final_y_m,
+        "wheel_track_scale": hundred.wheel_track_scale,
+        "wheel_track_mm": round(
+            2.0 * NOMINAL_HIP_Y_M * hundred.wheel_track_scale * 1000.0, 1
+        ),
         "wheel_joint_damping_n_m_s_rad": wheel_damping[0],
         "selected_wheel_speed_rpm": round(
             selected.target_speed_m_s / WHEEL_RADIUS_M * 60.0 / (2.0 * math.pi),

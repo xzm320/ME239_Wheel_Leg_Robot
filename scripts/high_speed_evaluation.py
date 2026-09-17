@@ -48,11 +48,13 @@ MODEL_PATH = (
     / "scene.xml"
 )
 WHEEL_RADIUS_M = 0.120
-START_X_M = -950.0
+NOMINAL_HIP_Y_M = 0.1137
+START_X_M = -1100.0
 CROUCHED_TRUNK_HEIGHT_M = 0.408
 TRUNK_COM_Z_OFFSET_M = 0.0
 ROUGH_START_X_M = -370.0
 TARGET_100_KMH_M_S = 100.0 / 3.6
+HUNDRED_KMH_WHEEL_TRACK_SCALE = 4.0
 
 
 @dataclass(frozen=True)
@@ -72,6 +74,7 @@ class HighSpeedResult:
     maximum_wheel_torque_nm: float
     peak_speed_m_s: float = 0.0
     final_y_m: float = 0.0
+    wheel_track_scale: float = 1.0
 
 
 def high_speed_balance_gains() -> BalanceGains:
@@ -119,14 +122,29 @@ def hundred_kmh_heading_torque_nm(
     roll_rate_rad_s: float,
     forward_speed_m_s: float,
 ) -> float:
-    """Delayed weak lane-keep; heading loops stay off during the lean-limited ramp."""
+    """Keep differential torque off; a wider wheel track holds roll without it."""
 
-    del yaw_rad, yaw_rate_rad_s, roll_rate_rad_s
-    if abs(lateral_m) <= 1.2 or forward_speed_m_s <= 18.0:
-        return 0.0
-    return float(
-        np.clip(-0.20 * lateral_m - 0.10 * lateral_speed_m_s, -0.25, 0.25)
+    del (
+        lateral_m,
+        lateral_speed_m_s,
+        yaw_rad,
+        yaw_rate_rad_s,
+        roll_rate_rad_s,
+        forward_speed_m_s,
     )
+    return 0.0
+
+
+def apply_wheel_track_scale(model: mujoco.MjModel, scale: float) -> None:
+    """Scale left/right hip Y so wheel track stays within 4x of the original."""
+
+    if scale < 1.0 or scale > 4.0:
+        raise ValueError(f"wheel track scale {scale} is outside 1x–4x")
+    for name, sign in (("left_hip_carrier", 1.0), ("right_hip_carrier", -1.0)):
+        body_id = mujoco.mj_name2id(model, mujoco.mjtObj.mjOBJ_BODY, name)
+        if body_id < 0:
+            raise ValueError(f"body not found: {name}")
+        model.body_pos[body_id, 1] = sign * NOMINAL_HIP_Y_M * scale
 
 
 def lower_trunk_center_of_mass(
@@ -429,6 +447,7 @@ def run_high_speed_episode(
         maximum_wheel_torque_nm=float(np.max(torques)),
         peak_speed_m_s=float(np.max(speed_array)),
         final_y_m=float(data.qpos[1]),
+        wheel_track_scale=1.0,
     )
 
 
@@ -442,6 +461,8 @@ def run_hundred_kmh_episode(
     trunk_com_z_offset_m: float = 0.0,
     balance_gains: BalanceGains | None = None,
     start_x_m: float | None = None,
+    start_y_m: float = 0.0,
+    wheel_track_scale: float = HUNDRED_KMH_WHEEL_TRACK_SCALE,
 ) -> HighSpeedResult:
     """Accelerate with wheel PID, optional lowered trunk CoM, and passive struts."""
 
@@ -449,12 +470,13 @@ def run_hundred_kmh_episode(
     launch_x = START_X_M if start_x_m is None else start_x_m
     model = mujoco.MjModel.from_xml_path(str(MODEL_PATH))
     apply_compliance_parameters(model, mechanical)
+    apply_wheel_track_scale(model, wheel_track_scale)
     if hinge_damping_n_m_s_rad is not None:
         apply_four_bar_hinge_damping(model, hinge_damping_n_m_s_rad)
     if trunk_com_z_offset_m:
         lower_trunk_center_of_mass(model, trunk_com_z_offset_m)
     data = mujoco.MjData(model)
-    data.qpos[:7] = (launch_x, 0.0, 0.408, 1.0, 0.0, 0.0, 0.0)
+    data.qpos[:7] = (launch_x, start_y_m, 0.408, 1.0, 0.0, 0.0, 0.0)
     mujoco.mj_forward(model, data)
     wheel_actuators = _object_ids(
         model, mujoco.mjtObj.mjOBJ_ACTUATOR, ("left_wheel", "right_wheel")
@@ -545,6 +567,7 @@ def run_hundred_kmh_episode(
         maximum_wheel_torque_nm=float(np.max(torques)),
         peak_speed_m_s=float(np.max(speed_array)),
         final_y_m=float(data.qpos[1]),
+        wheel_track_scale=wheel_track_scale,
     )
 
 
