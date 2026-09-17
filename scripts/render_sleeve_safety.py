@@ -79,7 +79,7 @@ def render(output_directory: Path) -> Path:
 
         for step in range(round(1.0 / model.opt.timestep)):
             ramp = min(step * model.opt.timestep / 0.35, 1.0)
-            data.ctrl[actuator_ids] = 0.1645 * ramp
+            data.ctrl[actuator_ids] = 0.1363 * ramp
             mujoco.mj_step(model, data)
         _render_state(model, data, camera, maximum_path)
 

@@ -24,7 +24,7 @@ class TerrainControlGains:
     stage_min_m: float = -0.020
     stage_max_m: float = 0.094
     stage_rate_limit_m_s: float = 0.30
-    strut_spring_compensation: float = 1.75
+    strut_spring_compensation: float = 1.45
     height_kp: float = 0.40
     height_kd: float = 0.10
     roll_kp: float = 0.290419
@@ -34,6 +34,18 @@ class TerrainControlGains:
     differential_torque_limit_nm: float = 2.5
     preview_base_m: float = 0.080
     preview_time_s: float = 0.030
+
+
+@dataclass(frozen=True)
+class ComplianceParameters:
+    """Mechanical compliance values shared by both sides."""
+
+    hip_x_stiffness_n_m: float = 7100.0
+    hip_x_damping_n_s_m: float = 48.0
+    hip_z_stiffness_n_m: float = 7800.0
+    hip_z_damping_n_s_m: float = 165.0
+    strut_equivalent_stiffness_n_m: float = 900.0
+    strut_equivalent_damping_n_s_m: float = 50.0
 
 
 @dataclass(frozen=True)
@@ -76,6 +88,59 @@ def stage_extension_from_leg_height(
             parameters.stage_min_m,
             parameters.stage_max_m,
         )
+    )
+
+
+def apply_compliance_parameters(
+    model: mujoco.MjModel,
+    parameters: ComplianceParameters,
+) -> None:
+    """Apply tunable joint springs and dampers to a loaded model."""
+
+    for side in ("left", "right"):
+        joint_values = (
+            (
+                f"{side}_hip_slide_x",
+                parameters.hip_x_stiffness_n_m,
+                parameters.hip_x_damping_n_s_m,
+            ),
+            (
+                f"{side}_hip_slide_z",
+                parameters.hip_z_stiffness_n_m,
+                parameters.hip_z_damping_n_s_m,
+            ),
+            (
+                f"{side}_strut_extension",
+                2.0 * parameters.strut_equivalent_stiffness_n_m,
+                2.0 * parameters.strut_equivalent_damping_n_s_m,
+            ),
+            (
+                f"{side}_strut_extension_stage2",
+                2.0 * parameters.strut_equivalent_stiffness_n_m,
+                2.0 * parameters.strut_equivalent_damping_n_s_m,
+            ),
+        )
+        for joint_name, stiffness, damping in joint_values:
+            joint_id = mujoco.mj_name2id(
+                model, mujoco.mjtObj.mjOBJ_JOINT, joint_name
+            )
+            if joint_id < 0:
+                raise ValueError(f"MuJoCo joint not found: {joint_name}")
+            model.jnt_stiffness[joint_id] = stiffness
+            model.dof_damping[int(model.jnt_dofadr[joint_id])] = damping
+
+
+def strut_spring_compensation(
+    parameters: ComplianceParameters,
+    servo_stiffness_n_m: float = 8000.0,
+) -> float:
+    """Return command scale accounting for both synchronized stage springs."""
+
+    return (
+        1.0
+        + 4.0
+        * parameters.strut_equivalent_stiffness_n_m
+        / servo_stiffness_n_m
     )
 
 

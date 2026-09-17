@@ -39,10 +39,10 @@ http://www.apache.org/licenses/LICENSE-2.0
       <!-- Left x-z compliant carrier. -->
       <body name="left_hip_carrier" pos="0 0.1137 0.0602">
         <joint name="left_hip_slide_x" type="slide" axis="1 0 0"
-               range="-0.020 0.020" stiffness="6500" damping="70"
+               range="-0.020 0.020" stiffness="7100" damping="48"
                springref="0" armature="0.02"/>
         <joint name="left_hip_slide_z" type="slide" axis="0 0 1"
-               range="-0.025 0.025" stiffness="12000" damping="120"
+               range="-0.025 0.025" stiffness="7800" damping="165"
                springref="0" armature="0.02"/>
         <inertial pos="0 0 0" mass="0.08" diaginertia="0.00008 0.00008 0.00008"/>
         <geom type="box" size="0.027 0.014 0.027" density="0"
@@ -71,7 +71,7 @@ http://www.apache.org/licenses/LICENSE-2.0
               <site name="left_strut_sleeve_end" pos="0.140 0 0" size="0.004"/>
               <body name="left_strut_middle" pos="0.050 0 0">
                 <joint name="left_strut_extension" type="slide" axis="1 0 0"
-                       range="-0.020 0.094" stiffness="3000" damping="50"
+                       range="-0.020 0.094" stiffness="1800" damping="100"
                        springref="0" armature="0.03"/>
                 <geom name="left_strut_middle_sleeve" type="capsule"
                       fromto="-0.040 0 0 0.100 0 0" size="0.008"
@@ -81,7 +81,7 @@ http://www.apache.org/licenses/LICENSE-2.0
                 <site name="left_strut_middle_end" pos="0.100 0 0" size="0.004"/>
                 <body name="left_strut_inner" pos="0.050 0 0">
                   <joint name="left_strut_extension_stage2" type="slide" axis="1 0 0"
-                         range="-0.020 0.094" stiffness="3000" damping="50"
+                         range="-0.020 0.094" stiffness="1800" damping="100"
                          springref="0" armature="0.03"/>
                   <geom name="left_strut_rod" type="capsule"
                         fromto="-0.070 0 0 0.050 0 0" size="0.0055"
@@ -124,10 +124,10 @@ http://www.apache.org/licenses/LICENSE-2.0
       <!-- Right x-z compliant carrier. -->
       <body name="right_hip_carrier" pos="0 -0.1137 0.0602">
         <joint name="right_hip_slide_x" type="slide" axis="1 0 0"
-               range="-0.020 0.020" stiffness="6500" damping="70"
+               range="-0.020 0.020" stiffness="7100" damping="48"
                springref="0" armature="0.02"/>
         <joint name="right_hip_slide_z" type="slide" axis="0 0 1"
-               range="-0.025 0.025" stiffness="12000" damping="120"
+               range="-0.025 0.025" stiffness="7800" damping="165"
                springref="0" armature="0.02"/>
         <inertial pos="0 0 0" mass="0.08" diaginertia="0.00008 0.00008 0.00008"/>
         <geom type="box" size="0.027 0.014 0.027" density="0"
@@ -155,7 +155,7 @@ http://www.apache.org/licenses/LICENSE-2.0
               <site name="right_strut_sleeve_end" pos="0.140 0 0" size="0.004"/>
               <body name="right_strut_middle" pos="0.050 0 0">
                 <joint name="right_strut_extension" type="slide" axis="1 0 0"
-                       range="-0.020 0.094" stiffness="3000" damping="50"
+                       range="-0.020 0.094" stiffness="1800" damping="100"
                        springref="0" armature="0.03"/>
                 <geom name="right_strut_middle_sleeve" type="capsule"
                       fromto="-0.040 0 0 0.100 0 0" size="0.008"
@@ -165,7 +165,7 @@ http://www.apache.org/licenses/LICENSE-2.0
                 <site name="right_strut_middle_end" pos="0.100 0 0" size="0.004"/>
                 <body name="right_strut_inner" pos="0.050 0 0">
                   <joint name="right_strut_extension_stage2" type="slide" axis="1 0 0"
-                         range="-0.020 0.094" stiffness="3000" damping="50"
+                         range="-0.020 0.094" stiffness="1800" damping="100"
                          springref="0" armature="0.03"/>
                   <geom name="right_strut_rod" type="capsule"
                         fromto="-0.070 0 0 0.050 0 0" size="0.0055"

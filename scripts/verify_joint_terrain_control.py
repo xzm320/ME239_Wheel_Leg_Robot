@@ -6,6 +6,7 @@ from __future__ import annotations
 import json
 import math
 import os
+from dataclasses import asdict, replace
 from pathlib import Path
 
 os.environ.setdefault("MUJOCO_GL", "osmesa")
@@ -17,19 +18,25 @@ if __package__:
     from scripts.balance_controller import quaternion_pitch
     from scripts.joint_terrain_controller import (
         JointTerrainController,
+        ComplianceParameters,
         TerrainControlGains,
+        apply_compliance_parameters,
         medium_terrain_speed_profile,
         quaternion_roll_yaw,
         sample_preview_ground_heights,
+        strut_spring_compensation,
     )
 else:
     from balance_controller import quaternion_pitch
     from joint_terrain_controller import (
         JointTerrainController,
+        ComplianceParameters,
         TerrainControlGains,
+        apply_compliance_parameters,
         medium_terrain_speed_profile,
         quaternion_roll_yaw,
         sample_preview_ground_heights,
+        strut_spring_compensation,
     )
 
 MODEL_PATH = (
@@ -50,8 +57,11 @@ def _id(model: mujoco.MjModel, object_type: int, name: str) -> int:
 
 def run_episode(
     gains: TerrainControlGains | None = None,
+    compliance: ComplianceParameters | None = None,
 ) -> dict[str, np.ndarray | float]:
     model = mujoco.MjModel.from_xml_path(str(MODEL_PATH))
+    mechanical_parameters = compliance or ComplianceParameters()
+    apply_compliance_parameters(model, mechanical_parameters)
     data = mujoco.MjData(model)
     data.qpos[:7] = (-8.5, 0.0, 0.408, 1.0, 0.0, 0.0, 0.0)
     mujoco.mj_forward(model, data)
@@ -69,7 +79,12 @@ def run_episode(
         for name in ("left_wheel_node", "right_wheel_node")
     )
     trunk_body_id = _id(model, mujoco.mjtObj.mjOBJ_BODY, "trunk")
-    parameters = gains or TerrainControlGains()
+    parameters = replace(
+        gains or TerrainControlGains(),
+        strut_spring_compensation=strut_spring_compensation(
+            mechanical_parameters
+        ),
+    )
     controller = JointTerrainController(float(model.opt.timestep), parameters)
     ground_heights = sample_preview_ground_heights(
         model, data, wheel_body_ids, 0.0, parameters
@@ -84,6 +99,8 @@ def run_episode(
     pitches: list[float] = []
     yaws: list[float] = []
     stage_targets: list[np.ndarray] = []
+    vertical_accelerations: list[float] = []
+    strut_forces: list[float] = []
 
     for step in range(round(14.0 / model.opt.timestep)):
         if step % 5 == 0:
@@ -125,6 +142,10 @@ def run_episode(
         pitches.append(pitch)
         yaws.append(yaw)
         stage_targets.append(output.stage_targets_m)
+        vertical_accelerations.append(float(data.qacc[2]))
+        strut_forces.append(
+            float(np.max(np.abs(data.actuator_force[strut_actuator_ids])))
+        )
 
     return {
         "time": np.asarray(times),
@@ -135,6 +156,8 @@ def run_episode(
         "pitch": np.asarray(pitches),
         "yaw": np.asarray(yaws),
         "stage_targets": np.asarray(stage_targets),
+        "vertical_acceleration": np.asarray(vertical_accelerations),
+        "strut_force": np.asarray(strut_forces),
         "initial_com_height": initial_com_height,
         "final_x": float(data.qpos[0]),
     }
@@ -150,6 +173,8 @@ def verify() -> dict[str, object]:
     pitches = np.asarray(run["pitch"])
     yaws = np.asarray(run["yaw"])
     stage_targets = np.asarray(run["stage_targets"])
+    vertical_acceleration = np.asarray(run["vertical_acceleration"])
+    strut_force = np.asarray(run["strut_force"])
     active = (times >= 4.0) & (times < 12.0)
     cruise = (times >= 6.0) & (times < 10.0)
 
@@ -161,6 +186,13 @@ def verify() -> dict[str, object]:
     maximum_roll = float(np.max(np.abs(rolls)))
     maximum_pitch = float(np.max(np.abs(pitches)))
     maximum_yaw = float(np.max(np.abs(yaws)))
+    acceleration_rms = float(
+        np.sqrt(np.mean(vertical_acceleration[active] ** 2))
+    )
+    acceleration_p95 = float(
+        np.percentile(np.abs(vertical_acceleration[active]), 95)
+    )
+    strut_force_p95 = float(np.percentile(strut_force[active], 95))
 
     model = mujoco.MjModel.from_xml_path(str(MODEL_PATH))
     left_wheel_body = _id(model, mujoco.mjtObj.mjOBJ_BODY, "left_wheel")
@@ -175,6 +207,9 @@ def verify() -> dict[str, object]:
     assert maximum_roll < math.radians(5.0)
     assert maximum_pitch < math.radians(23.0)
     assert maximum_yaw < math.radians(12.0)
+    assert acceleration_rms < 3.5
+    assert acceleration_p95 < 4.0
+    assert strut_force_p95 < 100.0
     assert np.min(stage_targets) >= -0.020
     assert np.max(stage_targets) <= 0.094
 
@@ -195,6 +230,10 @@ def verify() -> dict[str, object]:
         "maximum_roll_deg": round(math.degrees(maximum_roll), 3),
         "maximum_pitch_deg": round(math.degrees(maximum_pitch), 3),
         "maximum_yaw_deg": round(math.degrees(maximum_yaw), 3),
+        "vertical_acceleration_rms_m_s2": round(acceleration_rms, 4),
+        "vertical_acceleration_p95_m_s2": round(acceleration_p95, 4),
+        "strut_force_p95_n": round(strut_force_p95, 3),
+        "compliance_parameters": asdict(ComplianceParameters()),
         "minimum_stage_extension_mm": round(
             float(np.min(stage_targets)) * 1000, 3
         ),

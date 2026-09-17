@@ -10,3 +10,5 @@ def test_joint_control_on_medium_terrain() -> None:
     assert result["maximum_com_height_deviation_mm"] < 45.0
     assert result["maximum_roll_deg"] < 5.0
     assert result["maximum_pitch_deg"] < 15.0
+    assert result["vertical_acceleration_rms_m_s2"] < 3.5
+    assert result["vertical_acceleration_p95_m_s2"] < 4.0
