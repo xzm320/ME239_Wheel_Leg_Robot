@@ -8,10 +8,10 @@
     "flat_launch_end_x_m": -275.0,
     "length_m": 600.0,
     "maximum_height_m": 0.03,
-    "maximum_slope_deg": 0.1604610413115658,
-    "minimum_height_m": -0.015020529236439168,
+    "maximum_slope_deg": 0.13735461711703528,
+    "minimum_height_m": -0.01404697641555885,
     "resolution_m": 0.10000000000002274,
-    "rms_height_m": 0.016023787156286932,
+    "rms_height_m": 0.016069641240262184,
     "rough_start_x_m": -260.0,
     "width_m": 6.0
   },

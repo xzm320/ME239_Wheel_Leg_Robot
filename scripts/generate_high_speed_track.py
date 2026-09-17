@@ -63,7 +63,7 @@ def generate_heightfield() -> tuple[np.ndarray, dict[str, float]]:
     envelope[transition] = 0.5 + 0.5 * np.cos(math.pi * ratio)
     base *= envelope
 
-    lateral = 1.0 + 0.08 * np.sin(
+    lateral = 1.0 + 0.01 * np.sin(
         2.0 * math.pi * y[:, np.newaxis] / WIDTH_M
     )
     heights = np.clip(lateral * base[np.newaxis, :], -AMPLITUDE_M, AMPLITUDE_M)
