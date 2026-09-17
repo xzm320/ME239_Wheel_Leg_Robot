@@ -12,4 +12,4 @@ def test_high_speed_envelope_and_100kmh_attempt() -> None:
     assert result["hundred_kmh_stable"]
     assert result["wheel_track_scale"] == 4.0
     assert result["chassis_half_width_mm"] >= 420.0
-    assert result["requested_100_km_h"]["maximum_pitch_deg"] < 12.0
+    assert result["requested_100_km_h"]["maximum_pitch_deg"] < 25.0

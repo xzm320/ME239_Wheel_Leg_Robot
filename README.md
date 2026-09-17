@@ -2,7 +2,7 @@
 
 MuJoCo 里的轮腿原型：从 Upkie 改出柔顺髋座、菱形四连杆、分级崎岖路面，再用 PID 把宽机体开到约 100 km/h。点开图片可看对应视频。
 
-[![100 km/h 宽机体 whoops](docs/media/high_speed_100kmh.png)](docs/media/high_speed_100kmh.mp4)
+[![100 km/h 宽机体 Perlin 地形](docs/media/high_speed_100kmh.png)](docs/media/high_speed_100kmh.mp4)
 
 ## 已实现
 
@@ -36,7 +36,7 @@ MuJoCo 里的轮腿原型：从 Upkie 改出柔顺髋座、菱形四连杆、分
 
 ### 100 km/h 宽机体
 
-轮距加到原 Upkie 的 4 倍（910 mm），甲板加宽到 876 mm，侧翼和轴梁贴齐髋座。赛道是二维分形粗糙度 + 10–15 cm 高斯 whoops（RMS 约 78 mm），不是挤出来的长波。64 s 峰值 **28.15 m/s（101.3 km/h）**，行驶 1066 m，最大俯仰 5.1°、横滚 2.6°。
+轮距 910 mm、甲板 876 mm。高速赛道按 [Unitree `AddPerlinHeighField`](https://github.com/unitreerobotics/unitree_mujoco/blob/main/terrain_tool/readme_zh.md#6addperlinheighfield) 重做：5 层 Perlin（smooth 16 m，persistence 0.5，lacunarity 2.0），`height_scale` 0.18 m，前面留平地加速段。在该地形上重新跑 PID 后，64 s 峰值 **27.97 m/s（100.7 km/h）**，行驶 1064 m，最大俯仰 8.3°、横滚 7.1°。36 km/h 邻域仍在起飞垫上稳定。
 
 连杆仍用 190 mm：站立菱形已有约 174 mm 压缩行程。只加长连杆、不加长横杆，行程会变短。
 

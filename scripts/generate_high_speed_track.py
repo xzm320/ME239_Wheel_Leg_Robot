@@ -1,15 +1,11 @@
 #!/usr/bin/env python3
-"""Generate a long high-speed track with visible 2D roughness.
+"""Generate a long high-speed track from Unitree Perlin heightfields.
 
-The old 30 mm, 3.5–8 m extruded profile looked flat from a 4 m camera, and a
-1.55 m washboard at 100 km/h is an 18 Hz pitch hammer. This generator follows
-the usual robotics-sim mix:
-
-- Isaac Lab / ANYmal-style multi-octave 2D noise (not a 1D extrusion)
-- Motocross-style isolated cosine whoops for a readable ground silhouette
-- Sparse 2D Gaussian dirt piles
-- Unitree-style off-line ellipsoid/log props that catch raking light
-- A long cosine blend off a flat launch pad
+The surface follows ``AddPerlinHeighField`` in unitree_mujoco/terrain_tool:
+octaved Perlin (6 octaves, persistence 0.5, lacunarity 2.0) encoded as
+``(noise + 1) / 2``. A flat launch pad with a cosine blend is kept so the
+100 km/h PID can finish accelerating before the noise starts. Roadside logs
+stay visual-only, as in Unitree's mixed geom + hfield scenes.
 """
 
 from __future__ import annotations
@@ -22,138 +18,81 @@ from pathlib import Path
 
 import numpy as np
 
+if __package__:
+    from scripts.perlin import unitree_perlin_meters
+else:
+    from perlin import unitree_perlin_meters
+
 ROOT = Path(__file__).resolve().parents[1]
 OUTPUT_DIRECTORY = ROOT / "models" / "upkie" / "high_speed"
 LENGTH_M = 3000.0
 WIDTH_M = 64.0
 NX = 10001
 NY = 257
-AMPLITUDE_M = 0.20
-SEED = 9144
-
-
-def _gaussian_kernel(sigma_samples: float) -> np.ndarray:
-    radius = max(2, round(4.0 * sigma_samples))
-    positions = np.arange(-radius, radius + 1)
-    kernel = np.exp(-0.5 * (positions / max(sigma_samples, 1e-6)) ** 2)
-    kernel /= np.sum(kernel)
-    return kernel
-
-
-def _smooth_1d(signal: np.ndarray, sigma_samples: float) -> np.ndarray:
-    kernel = _gaussian_kernel(sigma_samples)
-    radius = kernel.size // 2
-    padded = np.pad(signal, radius, mode="reflect")
-    filtered = np.convolve(padded, kernel, mode="valid")
-    filtered -= float(np.mean(filtered))
-    peak = float(np.max(np.abs(filtered)))
-    if peak > 0.0:
-        filtered /= peak
-    return filtered
-
-
-def _smooth_2d(
-    field: np.ndarray, sigma_x_samples: float, sigma_y_samples: float
-) -> np.ndarray:
-    kernel_x = _gaussian_kernel(sigma_x_samples)
-    kernel_y = _gaussian_kernel(sigma_y_samples)
-    radius_x = kernel_x.size // 2
-    radius_y = kernel_y.size // 2
-    padded_x = np.pad(field, ((0, 0), (radius_x, radius_x)), mode="reflect")
-    along_x = np.apply_along_axis(
-        lambda row: np.convolve(row, kernel_x, mode="valid"), 1, padded_x
-    )
-    padded_y = np.pad(along_x, ((radius_y, radius_y), (0, 0)), mode="reflect")
-    blurred = np.apply_along_axis(
-        lambda column: np.convolve(column, kernel_y, mode="valid"), 0, padded_y
-    )
-    blurred -= float(np.mean(blurred))
-    peak = float(np.max(np.abs(blurred)))
-    if peak > 0.0:
-        blurred /= peak
-    return blurred
+# Unitree default height_scale is 0.2 m; slightly lower so 100 km/h stays
+# rideable while the 6-octave field still reads as dirt, not a flat plane.
+HEIGHT_SCALE_M = 0.18
+NEGATIVE_HEIGHT_M = 0.10
+PERLIN_SMOOTH_M = 16.0
+PERLIN_OCTAVES = 5
+PERLIN_PERSISTENCE = 0.5
+PERLIN_LACUNARITY = 2.0
+SEED = 20260917
+FLAT_LAUNCH_END_X_M = -520.0
+ROUGH_START_X_M = -260.0
+FINISH_BLEND_START_X_M = 780.0
+FINISH_END_X_M = 900.0
 
 
 def generate_heightfield() -> tuple[np.ndarray, dict[str, float]]:
-    rng = np.random.default_rng(SEED)
     x = np.linspace(-LENGTH_M / 2.0, LENGTH_M / 2.0, NX)
     y = np.linspace(-WIDTH_M / 2.0, WIDTH_M / 2.0, NY)
     dx = float(x[1] - x[0])
     dy = float(y[1] - y[0])
     grid_y, grid_x = np.meshgrid(y, x, indexing="ij")
 
-    # Multi-octave 2D roughness so left and right wheels see different ground.
-    hills = 0.028 * _smooth_2d(
-        rng.normal(size=(NY, NX)), 10.0 / dx, 7.5 / dy
-    )
-    medium = 0.012 * _smooth_2d(
-        rng.normal(size=(NY, NX)), 4.4 / dx, 3.4 / dy
-    )
-    ripple = 0.005 * _smooth_2d(
-        rng.normal(size=(NY, NX)), 2.4 / dx, 2.0 / dy
-    )
-    heights = hills + medium + ripple
-
-    # Isolated Gaussian whoops. A compact cosine pulse looks like a spike at
-    # 0.3 m resolution; a 6–8 m mound keeps the side-on silhouette without
-    # hammering pitch at 28 m/s.
-    whoop_x = -245.0
-    whoop_index = 0
-    while whoop_x < 760.0:
-        sigma = float(rng.uniform(2.5, 3.6))
-        gap = float(rng.uniform(11.0, 16.5))
-        height = float(rng.uniform(0.105, 0.155))
-        ramp = float(np.clip((whoop_x + 245.0) / 220.0, 0.0, 1.0))
-        height *= 0.42 + 0.58 * ramp
-        tilt = float(rng.uniform(-0.005, 0.005))
-        lateral = 1.0 + 0.10 * np.sin(
-            2.0 * math.pi * grid_y / 9.0 + rng.uniform(0.0, 6.0)
+    # Unitree AddPerlinHeighField: (pnoise2 + 1) / 2 in [0, 1].
+    unitree_01 = (
+        unitree_perlin_meters(
+            grid_x,
+            grid_y,
+            smooth_m=PERLIN_SMOOTH_M,
+            octaves=PERLIN_OCTAVES,
+            persistence=PERLIN_PERSISTENCE,
+            lacunarity=PERLIN_LACUNARITY,
+            seed=SEED,
         )
-        heights += (
-            (height + tilt * grid_y)
-            * lateral
-            * np.exp(-0.5 * ((grid_x - whoop_x) / sigma) ** 2)
-        )
-        whoop_x += 2.2 * sigma + gap
-        whoop_index += 1
-
-    # Rounded 2D dirt piles on and beside the racing line.
-    for _ in range(48):
-        center_x = rng.uniform(-220.0, 740.0)
-        center_y = rng.uniform(-10.0, 10.0)
-        height = rng.uniform(0.028, 0.070)
-        width_x = rng.uniform(2.0, 3.8)
-        width_y = rng.uniform(1.4, 2.8)
-        heights += height * np.exp(
-            -0.5
-            * (
-                ((grid_x - center_x) / width_x) ** 2
-                + ((grid_y - center_y) / width_y) ** 2
-            )
-        )
+        + 1.0
+    ) * 0.5
 
     envelope = np.ones_like(x)
-    envelope[x < -500.0] = 0.0
-    transition = (x >= -500.0) & (x < -300.0)
-    ratio = (x[transition] + 500.0) / 200.0
+    envelope[x < FLAT_LAUNCH_END_X_M] = 0.0
+    transition = (x >= FLAT_LAUNCH_END_X_M) & (x < ROUGH_START_X_M)
+    ratio = (x[transition] - FLAT_LAUNCH_END_X_M) / (
+        ROUGH_START_X_M - FLAT_LAUNCH_END_X_M
+    )
     envelope[transition] = 0.5 - 0.5 * np.cos(math.pi * ratio)
-    envelope[x > 900.0] = 0.0
-    transition = (x > 780.0) & (x <= 900.0)
-    ratio = (x[transition] - 780.0) / 120.0
+    envelope[x > FINISH_END_X_M] = 0.0
+    transition = (x > FINISH_BLEND_START_X_M) & (x <= FINISH_END_X_M)
+    ratio = (x[transition] - FINISH_BLEND_START_X_M) / (
+        FINISH_END_X_M - FINISH_BLEND_START_X_M
+    )
     envelope[transition] = 0.5 + 0.5 * np.cos(math.pi * ratio)
-    heights *= envelope[np.newaxis, :]
-    heights = AMPLITUDE_M * np.tanh(heights / 0.14)
 
-    slope_y, slope_x = np.gradient(heights, dy, dx)
-    active = (x >= -300.0) & (x <= 760.0)
-    return heights, {
+    # Flat pad stays mid-gray (Unitree mean height), noise ramps in with envelope.
+    heights_01 = 0.5 + (unitree_01 - 0.5) * envelope[np.newaxis, :]
+    heights_m = (heights_01 - 0.5) * HEIGHT_SCALE_M
+
+    slope_y, slope_x = np.gradient(heights_m, dy, dx)
+    active = (x >= ROUGH_START_X_M) & (x <= FINISH_BLEND_START_X_M)
+    return heights_01, {
         "length_m": LENGTH_M,
         "width_m": WIDTH_M,
         "resolution_m": dx,
         "lateral_resolution_m": dy,
-        "minimum_height_m": float(np.min(heights[:, active])),
-        "maximum_height_m": float(np.max(heights[:, active])),
-        "rms_height_m": float(np.sqrt(np.mean(heights[:, active] ** 2))),
+        "minimum_height_m": float(np.min(heights_m[:, active])),
+        "maximum_height_m": float(np.max(heights_m[:, active])),
+        "rms_height_m": float(np.sqrt(np.mean(heights_m[:, active] ** 2))),
         "maximum_slope_deg": float(
             np.degrees(
                 np.arctan(
@@ -161,10 +100,14 @@ def generate_heightfield() -> tuple[np.ndarray, dict[str, float]]:
                 )
             )
         ),
-        "flat_launch_end_x_m": -500.0,
-        "rough_start_x_m": -300.0,
-        "whoop_start_x_m": -245.0,
-        "whoop_count": whoop_index,
+        "flat_launch_end_x_m": FLAT_LAUNCH_END_X_M,
+        "rough_start_x_m": ROUGH_START_X_M,
+        "generator": "unitree_AddPerlinHeighField",
+        "perlin_smooth_m": PERLIN_SMOOTH_M,
+        "perlin_octaves": PERLIN_OCTAVES,
+        "perlin_persistence": PERLIN_PERSISTENCE,
+        "perlin_lacunarity": PERLIN_LACUNARITY,
+        "height_scale_m": HEIGHT_SCALE_M,
     }
 
 
@@ -250,15 +193,18 @@ def _prop_xml(props: list[dict[str, object]]) -> str:
 
 def generate() -> dict[str, object]:
     OUTPUT_DIRECTORY.mkdir(parents=True, exist_ok=True)
-    heights, metrics = generate_heightfield()
+    heights_01, metrics = generate_heightfield()
     props = generate_scenery_props()
-    encoded = (heights / (2.0 * AMPLITUDE_M) + 0.5) * 255.0
+    encoded = heights_01 * 255.0
     encoded[0, 0] = 0.0
     encoded[-1, -1] = 255.0
     _write_grayscale_png(OUTPUT_DIRECTORY / "heightfield.png", encoded)
-    vertical_scale = 2.0 * AMPLITUDE_M
+    vertical_scale = HEIGHT_SCALE_M
     vertical_offset = -vertical_scale * 128.0 / 255.0
-    scene = f"""<!-- Generated by scripts/generate_high_speed_track.py. -->
+    scene = f"""<!-- Generated by scripts/generate_high_speed_track.py.
+Unitree AddPerlinHeighField: octaves={PERLIN_OCTAVES},
+smooth={PERLIN_SMOOTH_M} m, persistence={PERLIN_PERSISTENCE},
+lacunarity={PERLIN_LACUNARITY}, height_scale={HEIGHT_SCALE_M} m. -->
 <mujoco model="upkie_high_speed_rough_track">
   <include file="robot.xml"/>
   <visual>
@@ -269,7 +215,7 @@ def generate() -> dict[str, object]:
   </visual>
   <asset>
     <hfield name="high_speed_track" file="heightfield.png"
-            size="1500 32 {vertical_scale:.6f} 0.10"/>
+            size="1500 32 {vertical_scale:.6f} {NEGATIVE_HEIGHT_M:.2f}"/>
     <texture type="skybox" builtin="gradient" rgb1="0.40 0.56 0.74"
              rgb2="0.05 0.06 0.08" width="512" height="3072"/>
     <texture type="2d" name="track_grid" builtin="checker" mark="edge"
@@ -294,10 +240,15 @@ def generate() -> dict[str, object]:
     (OUTPUT_DIRECTORY / "scene.xml").write_text(scene, encoding="utf-8")
     metadata = {
         "seed": SEED,
-        "amplitude_limit_m": AMPLITUDE_M,
+        "height_scale_m": HEIGHT_SCALE_M,
+        "negative_height_m": NEGATIVE_HEIGHT_M,
         "grid": {"rows": NY, "columns": NX},
         "metrics": metrics,
         "scenery_prop_count": len(props),
+        "source": (
+            "unitree_mujoco/terrain_tool AddPerlinHeighField "
+            "(pnoise2 octaves/persistence/lacunarity)"
+        ),
     }
     (OUTPUT_DIRECTORY / "metadata.json").write_text(
         json.dumps(metadata, indent=2, sort_keys=True) + "\n",

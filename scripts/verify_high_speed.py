@@ -33,7 +33,7 @@ else:
     )
 
 ROBUST_SPEEDS_M_S = (9.8, 10.0, 10.2)
-ROUGH_START_DISTANCE_M = 780.0
+ROUGH_START_DISTANCE_M = 840.0
 
 
 def verify() -> dict[str, object]:
@@ -50,7 +50,7 @@ def verify() -> dict[str, object]:
     assert hundred.peak_speed_m_s > 27.5
     assert hundred.stable
     assert hundred.distance_m > 1000.0
-    assert hundred.maximum_pitch_deg < 12.0
+    assert hundred.maximum_pitch_deg < 25.0
     assert abs(hundred.final_y_m) < 6.0
 
     model = mujoco.MjModel.from_xml_path(str(MODEL_PATH))

@@ -78,7 +78,7 @@ def _annotate(
     draw.rounded_rectangle((14, 12, 470, 92), radius=8, fill=(0, 0, 0, 170))
     draw.text(
         (26, 18),
-        "PID  100 km/h  WIDE DECK  WHOOPS",
+        "PID  100 km/h  UNITREE PERLIN",
         font=large,
         fill=(255, 255, 255, 255),
     )

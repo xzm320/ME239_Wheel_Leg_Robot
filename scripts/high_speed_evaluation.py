@@ -52,7 +52,7 @@ NOMINAL_HIP_Y_M = 0.1137
 START_X_M = -1100.0
 CROUCHED_TRUNK_HEIGHT_M = 0.408
 TRUNK_COM_Z_OFFSET_M = 0.0
-ROUGH_START_X_M = -300.0
+ROUGH_START_X_M = -260.0
 TARGET_100_KMH_M_S = 100.0 / 3.6
 HUNDRED_KMH_WHEEL_TRACK_SCALE = 4.0
 HUNDRED_KMH_STRUT_KP = 4000.0
@@ -108,7 +108,7 @@ def hundred_kmh_balance_gains() -> BalanceGains:
 
     return BalanceGains(
         pitch_kp=465.6879,
-        pitch_kd=36.0,
+        pitch_kd=42.0,
         speed_kp=0.030,
         speed_ki=0.0,
         pitch_reference_limit_rad=0.085,
@@ -132,8 +132,8 @@ def hundred_kmh_heading_torque_nm(
     if forward_speed_m_s < 8.0:
         return 0.0
     scale = float(np.clip((forward_speed_m_s - 8.0) / 12.0, 0.0, 1.0))
-    torque = 0.72 * yaw_rad + 0.20 * yaw_rate_rad_s
-    return float(np.clip(scale * torque, -0.14, 0.14))
+    torque = 0.95 * yaw_rad + 0.28 * yaw_rate_rad_s
+    return float(np.clip(scale * torque, -0.18, 0.18))
 
 
 def apply_hundred_kmh_suspension(model: mujoco.MjModel) -> None:
