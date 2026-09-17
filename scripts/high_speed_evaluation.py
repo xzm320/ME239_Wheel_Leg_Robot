@@ -120,6 +120,15 @@ def run_high_speed_episode(
         mujoco.mjtObj.mjOBJ_ACTUATOR,
         ("left_wheel", "right_wheel"),
     )
+    for actuator_id in wheel_actuators:
+        model.actuator_ctrlrange[actuator_id] = (
+            -balance_parameters.wheel_torque_limit_nm,
+            balance_parameters.wheel_torque_limit_nm,
+        )
+        model.actuator_forcerange[actuator_id] = (
+            -balance_parameters.wheel_torque_limit_nm,
+            balance_parameters.wheel_torque_limit_nm,
+        )
     strut_actuators = _object_ids(
         model,
         mujoco.mjtObj.mjOBJ_ACTUATOR,
