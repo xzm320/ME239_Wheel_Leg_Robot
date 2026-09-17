@@ -241,7 +241,8 @@ def _scene_xml(spec: TerrainSpec, obstacles: list[dict[str, object]]) -> str:
             f'pos="{" ".join(f"{value:.6f}" for value in obstacle["position"])}" '
             f'size="{" ".join(f"{value:.6f}" for value in obstacle["size"])}" '
             f'quat="{" ".join(f"{value:.8f}" for value in obstacle["quaternion"])}" '
-            'rgba="0.48 0.34 0.22 1" friction="1.2 0.02 0.002" condim="3"/>'
+            'group="3" rgba="0.48 0.34 0.22 1" '
+            'friction="1.2 0.02 0.002" condim="3"/>'
         )
         for obstacle in obstacles
     )
@@ -270,7 +271,7 @@ combined with explicit randomized box and cylinder geometries. -->
     <light pos="-2 -2 4" dir="0.2 0.2 -1" directional="true"/>
     <geom name="terrain" type="hfield" hfield="{spec.name}_heightfield"
           pos="0 0 {vertical_offset:.8f}" material="{spec.name}_ground"
-          friction="1.1 0.02 0.002" condim="3"/>
+          group="3" friction="1.1 0.02 0.002" condim="3"/>
 {obstacle_xml}
   </worldbody>
 </mujoco>

@@ -27,6 +27,7 @@ uv run python scripts/verify_flexible_hip.py
 uv run python scripts/verify_four_bar.py
 uv run python scripts/verify_terrains.py
 uv run python scripts/verify_flat_control.py
+uv run python scripts/verify_joint_terrain_control.py
 uv run pytest
 ```
 
@@ -39,6 +40,7 @@ uv run python scripts/render_four_bar_demo.py
 uv run python scripts/render_terrain_comparison.py
 uv run python scripts/render_sleeve_safety.py
 uv run python scripts/render_flat_control_demo.py
+uv run python scripts/render_joint_terrain_demo.py
 ```
 
 若本机有图形桌面，可打开交互查看器：
@@ -58,8 +60,10 @@ uv run python -m mujoco.viewer --mjcf models/upkie/four_bar/scene.xml
 3. 建立在前后 x、垂向 z 两个方向具有线性回中力的柔顺髋座（已完成）
 4. 将轮腿改为带主动伸缩、被动弹性横杆的四连杆机构（已完成）
 5. 构建参数化崎岖路面与分级测试场景（已完成）
-6. 建立控制器、参数辨识和高速运行调参/评估流程（进行中：平地初调完成）
+6. 建立控制器、参数辨识和高速运行调参/评估流程（进行中：中等崎岖地形联合控制完成）
 
 当前平地控制器采用速度 PI 外环和机身俯仰 PD 内环，目标倾角带限幅和变化率限制。确定性批量仿真得到的初始增益可使机器人以 2.0 m/s（7.2 km/h）目标速度完成加速、巡航、制动，并从 8° 初始俯仰偏差恢复。轮毂执行器已改为 ±6 N·m 直接力矩电机；这是高速改装参数，不代表已验证连续热能力。
 
-机械参数和控制增益不会直接凭经验固定。下一步会把平地控制器迁移到分级崎岖路面，加入横杆行程控制和冲击指标，再联合调整平衡、速度与腿长控制参数。
+联合控制增加地形射线预瞄、独立左右腿长、车身高度/横滚反馈以及差速偏航控制。240 mm 直径车轮与双级伸缩横杆配合后，在 `medium` 地形以 1.5 m/s 目标速度通过 13.7 m；重心高度标准差约 10.9 mm，最大偏差约 39.3 mm。横杆全行程可将腿高从 348 mm 降至约 169 mm（48.7%），并在最大伸长时保持至少 26 mm 套筒搭接。
+
+下一步将针对 `hard` / `extreme` 地形加入接触状态与冲击指标，并评估轮毂电机和横杆执行器的连续功率、峰值载荷及热限制。

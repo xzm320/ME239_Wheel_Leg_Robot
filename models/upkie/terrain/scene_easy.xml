@@ -23,10 +23,10 @@ combined with explicit randomized box and cylinder geometries. -->
     <light pos="-2 -2 4" dir="0.2 0.2 -1" directional="true"/>
     <geom name="terrain" type="hfield" hfield="easy_heightfield"
           pos="0 0 -0.02007843" material="easy_ground"
-          friction="1.1 0.02 0.002" condim="3"/>
-    <geom name="easy_transverse_log_00" type="cylinder" pos="-4.517283 0.000000 0.009005" size="0.014941 0.878987" quat="0.70710678 0.70710678 0.00000000 0.00000000" rgba="0.48 0.34 0.22 1" friction="1.2 0.02 0.002" condim="3"/>
-    <geom name="easy_rock_box_00" type="box" pos="0.359416 -0.633557 0.018974" size="0.103232 0.136034 0.015774" quat="0.99689116 -0.03858948 -0.06771562 -0.01155244" rgba="0.48 0.34 0.22 1" friction="1.2 0.02 0.002" condim="3"/>
-    <geom name="easy_rock_box_01" type="box" pos="1.494142 0.917593 0.010001" size="0.131457 0.083715 0.007913" quat="0.99274614 0.07038725 0.09187180 0.03256234" rgba="0.48 0.34 0.22 1" friction="1.2 0.02 0.002" condim="3"/>
-    <geom name="easy_rock_box_02" type="box" pos="4.625800 -0.213334 -0.006753" size="0.130622 0.068076 0.007517" quat="0.99233831 0.05811338 0.06907735 -0.08435536" rgba="0.48 0.34 0.22 1" friction="1.2 0.02 0.002" condim="3"/>
+          group="3" friction="1.1 0.02 0.002" condim="3"/>
+    <geom name="easy_transverse_log_00" type="cylinder" pos="-4.517283 0.000000 0.009005" size="0.014941 0.878987" quat="0.70710678 0.70710678 0.00000000 0.00000000" group="3" rgba="0.48 0.34 0.22 1" friction="1.2 0.02 0.002" condim="3"/>
+    <geom name="easy_rock_box_00" type="box" pos="0.359416 -0.633557 0.018974" size="0.103232 0.136034 0.015774" quat="0.99689116 -0.03858948 -0.06771562 -0.01155244" group="3" rgba="0.48 0.34 0.22 1" friction="1.2 0.02 0.002" condim="3"/>
+    <geom name="easy_rock_box_01" type="box" pos="1.494142 0.917593 0.010001" size="0.131457 0.083715 0.007913" quat="0.99274614 0.07038725 0.09187180 0.03256234" group="3" rgba="0.48 0.34 0.22 1" friction="1.2 0.02 0.002" condim="3"/>
+    <geom name="easy_rock_box_02" type="box" pos="4.625800 -0.213334 -0.006753" size="0.130622 0.068076 0.007517" quat="0.99233831 0.05811338 0.06907735 -0.08435536" group="3" rgba="0.48 0.34 0.22 1" friction="1.2 0.02 0.002" condim="3"/>
   </worldbody>
 </mujoco>

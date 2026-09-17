@@ -23,14 +23,14 @@ combined with explicit randomized box and cylinder geometries. -->
     <light pos="-2 -2 4" dir="0.2 0.2 -1" directional="true"/>
     <geom name="terrain" type="hfield" hfield="medium_heightfield"
           pos="0 0 -0.05521569" material="medium_ground"
-          friction="1.1 0.02 0.002" condim="3"/>
-    <geom name="medium_transverse_log_00" type="cylinder" pos="-4.449959 0.000000 0.001432" size="0.033207 0.951528" quat="0.70710678 0.70710678 0.00000000 0.00000000" rgba="0.48 0.34 0.22 1" friction="1.2 0.02 0.002" condim="3"/>
-    <geom name="medium_transverse_log_01" type="cylinder" pos="6.685052 0.000000 0.055819" size="0.037152 0.989730" quat="0.70710678 0.70710678 0.00000000 0.00000000" rgba="0.48 0.34 0.22 1" friction="1.2 0.02 0.002" condim="3"/>
-    <geom name="medium_rock_box_00" type="box" pos="-2.309971 -0.726544 0.024320" size="0.051438 0.122860 0.012910" quat="0.98413160 -0.03197958 -0.09317015 0.14758602" rgba="0.48 0.34 0.22 1" friction="1.2 0.02 0.002" condim="3"/>
-    <geom name="medium_rock_box_01" type="box" pos="2.729226 -0.811802 0.024942" size="0.061876 0.111064 0.017738" quat="0.99032650 -0.06088463 0.08369092 0.09242464" rgba="0.48 0.34 0.22 1" friction="1.2 0.02 0.002" condim="3"/>
-    <geom name="medium_rock_box_02" type="box" pos="-1.501804 0.832112 0.021698" size="0.085227 0.104964 0.013214" quat="0.99892824 0.01687671 -0.01922102 0.03857582" rgba="0.48 0.34 0.22 1" friction="1.2 0.02 0.002" condim="3"/>
-    <geom name="medium_rock_box_03" type="box" pos="-2.822756 -1.049207 0.003368" size="0.110908 0.182961 0.013224" quat="0.99717746 -0.03052130 0.00197614 0.06856866" rgba="0.48 0.34 0.22 1" friction="1.2 0.02 0.002" condim="3"/>
-    <geom name="medium_rock_box_04" type="box" pos="1.241667 0.910184 0.043675" size="0.121797 0.114498 0.028672" quat="0.98150686 0.05410921 -0.01099399 -0.18329104" rgba="0.48 0.34 0.22 1" friction="1.2 0.02 0.002" condim="3"/>
-    <geom name="medium_rock_box_05" type="box" pos="5.624518 0.877048 -0.004122" size="0.055621 0.180621 0.024407" quat="0.98307703 0.04383845 -0.05859198 0.16794260" rgba="0.48 0.34 0.22 1" friction="1.2 0.02 0.002" condim="3"/>
+          group="3" friction="1.1 0.02 0.002" condim="3"/>
+    <geom name="medium_transverse_log_00" type="cylinder" pos="-4.449959 0.000000 0.001432" size="0.033207 0.951528" quat="0.70710678 0.70710678 0.00000000 0.00000000" group="3" rgba="0.48 0.34 0.22 1" friction="1.2 0.02 0.002" condim="3"/>
+    <geom name="medium_transverse_log_01" type="cylinder" pos="6.685052 0.000000 0.055819" size="0.037152 0.989730" quat="0.70710678 0.70710678 0.00000000 0.00000000" group="3" rgba="0.48 0.34 0.22 1" friction="1.2 0.02 0.002" condim="3"/>
+    <geom name="medium_rock_box_00" type="box" pos="-2.309971 -0.726544 0.024320" size="0.051438 0.122860 0.012910" quat="0.98413160 -0.03197958 -0.09317015 0.14758602" group="3" rgba="0.48 0.34 0.22 1" friction="1.2 0.02 0.002" condim="3"/>
+    <geom name="medium_rock_box_01" type="box" pos="2.729226 -0.811802 0.024942" size="0.061876 0.111064 0.017738" quat="0.99032650 -0.06088463 0.08369092 0.09242464" group="3" rgba="0.48 0.34 0.22 1" friction="1.2 0.02 0.002" condim="3"/>
+    <geom name="medium_rock_box_02" type="box" pos="-1.501804 0.832112 0.021698" size="0.085227 0.104964 0.013214" quat="0.99892824 0.01687671 -0.01922102 0.03857582" group="3" rgba="0.48 0.34 0.22 1" friction="1.2 0.02 0.002" condim="3"/>
+    <geom name="medium_rock_box_03" type="box" pos="-2.822756 -1.049207 0.003368" size="0.110908 0.182961 0.013224" quat="0.99717746 -0.03052130 0.00197614 0.06856866" group="3" rgba="0.48 0.34 0.22 1" friction="1.2 0.02 0.002" condim="3"/>
+    <geom name="medium_rock_box_04" type="box" pos="1.241667 0.910184 0.043675" size="0.121797 0.114498 0.028672" quat="0.98150686 0.05410921 -0.01099399 -0.18329104" group="3" rgba="0.48 0.34 0.22 1" friction="1.2 0.02 0.002" condim="3"/>
+    <geom name="medium_rock_box_05" type="box" pos="5.624518 0.877048 -0.004122" size="0.055621 0.180621 0.024407" quat="0.98307703 0.04383845 -0.05859198 0.16794260" group="3" rgba="0.48 0.34 0.22 1" friction="1.2 0.02 0.002" condim="3"/>
   </worldbody>
 </mujoco>
