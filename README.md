@@ -1,8 +1,8 @@
 # 高速崎岖地面轮腿机器人
 
-MuJoCo 里的轮腿原型：从 Upkie 改出柔顺髋座、菱形四连杆、分级崎岖路面，再用 PID 把宽机体开到约 100 km/h。点开图片可看对应视频。
+MuJoCo 里的轮腿原型：从 Upkie 改出柔顺髋座、菱形四连杆、分级崎岖路面，再用 PID 把 3 倍轮距机体开到约 100 km/h。点开图片可看对应视频。
 
-[![100 km/h 宽机体 Perlin 地形](docs/media/high_speed_100kmh.png)](docs/media/high_speed_100kmh.mp4)
+[![100 km/h Perlin 地形](docs/media/high_speed_100kmh.png)](docs/media/high_speed_100kmh.mp4)
 
 ## 已实现
 
@@ -34,9 +34,9 @@ MuJoCo 里的轮腿原型：从 Upkie 改出柔顺髋座、菱形四连杆、分
 
 [36 km/h 长赛道](docs/media/high_speed_36kmh.mp4)
 
-### 100 km/h 宽机体
+### 100 km/h（3 倍轮距）
 
-轮距 910 mm、甲板 876 mm。高速赛道按 [Unitree `AddPerlinHeighField`](https://github.com/unitreerobotics/unitree_mujoco/blob/main/terrain_tool/readme_zh.md#6addperlinheighfield) 重做：5 层 Perlin（smooth 16 m，persistence 0.5，lacunarity 2.0），`height_scale` 0.18 m，前面留平地加速段。在该地形上重新跑 PID 后，64 s 峰值 **27.97 m/s（100.7 km/h）**，行驶 1064 m，最大俯仰 8.3°、横滚 7.1°。36 km/h 邻域仍在起飞垫上稳定。
+轮距 682 mm、甲板 656 mm，是上一版 4 倍轮距的 3/4。高速赛道只剩 Unitree [AddPerlinHeighField](https://github.com/unitreerobotics/unitree_mujoco/blob/main/terrain_tool/readme_zh.md#6addperlinheighfield) 高度场，不再摆圆柱/椭球装饰。3 层 Perlin，沿前进方向 smooth 16 m、横向 32 m，`height_scale` 0.24 m；侧光加阴影，地面用纯色泥土，不铺高对比棋盘。64 s 峰值 **28.41 m/s（102.3 km/h）**，行驶 1081 m，最大俯仰 5.1°、横滚 6.5°。36 km/h 邻域仍在起飞垫上稳定。
 
 连杆仍用 190 mm：站立菱形已有约 174 mm 压缩行程。只加长连杆、不加长横杆，行程会变短。
 

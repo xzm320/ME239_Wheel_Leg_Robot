@@ -52,11 +52,11 @@ NOMINAL_HIP_Y_M = 0.1137
 START_X_M = -1100.0
 CROUCHED_TRUNK_HEIGHT_M = 0.408
 TRUNK_COM_Z_OFFSET_M = 0.0
-ROUGH_START_X_M = -260.0
+ROUGH_START_X_M = -140.0
 TARGET_100_KMH_M_S = 100.0 / 3.6
-HUNDRED_KMH_WHEEL_TRACK_SCALE = 4.0
-HUNDRED_KMH_STRUT_KP = 4000.0
-HUNDRED_KMH_STRUT_KV = 90.0
+HUNDRED_KMH_WHEEL_TRACK_SCALE = 3.0
+HUNDRED_KMH_STRUT_KP = 2800.0
+HUNDRED_KMH_STRUT_KV = 80.0
 
 
 @dataclass(frozen=True)
@@ -108,7 +108,7 @@ def hundred_kmh_balance_gains() -> BalanceGains:
 
     return BalanceGains(
         pitch_kp=465.6879,
-        pitch_kd=42.0,
+        pitch_kd=55.0,
         speed_kp=0.030,
         speed_ki=0.0,
         pitch_reference_limit_rad=0.085,
@@ -123,17 +123,24 @@ def hundred_kmh_heading_torque_nm(
     lateral_speed_m_s: float,
     yaw_rad: float,
     yaw_rate_rad_s: float,
+    roll_rad: float,
     roll_rate_rad_s: float,
     forward_speed_m_s: float,
 ) -> float:
-    """Very weak yaw hold; 4x track already resists roll."""
+    """Weak yaw hold plus roll PD. Strong yaw differentials roll the 3x track."""
 
-    del lateral_m, lateral_speed_m_s, roll_rate_rad_s
     if forward_speed_m_s < 8.0:
         return 0.0
     scale = float(np.clip((forward_speed_m_s - 8.0) / 12.0, 0.0, 1.0))
-    torque = 0.95 * yaw_rad + 0.28 * yaw_rate_rad_s
-    return float(np.clip(scale * torque, -0.18, 0.18))
+    torque = (
+        0.58 * yaw_rad
+        + 0.17 * yaw_rate_rad_s
+        + 0.025 * lateral_m
+        + 0.02 * lateral_speed_m_s
+        - 3.4 * roll_rad
+        - 0.50 * roll_rate_rad_s
+    )
+    return float(np.clip(scale * torque, -0.22, 0.22))
 
 
 def apply_hundred_kmh_suspension(model: mujoco.MjModel) -> None:
@@ -531,6 +538,7 @@ def run_hundred_kmh_episode(
             lateral_speed_m_s=float(data.qvel[1]),
             yaw_rad=yaw,
             yaw_rate_rad_s=float(data.qvel[5]),
+            roll_rad=roll,
             roll_rate_rad_s=float(data.qvel[3]),
             forward_speed_m_s=float(data.qvel[0]),
         )

@@ -33,7 +33,7 @@ else:
     )
 
 ROBUST_SPEEDS_M_S = (9.8, 10.0, 10.2)
-ROUGH_START_DISTANCE_M = 840.0
+ROUGH_START_DISTANCE_M = 960.0
 
 
 def verify() -> dict[str, object]:
@@ -57,7 +57,15 @@ def verify() -> dict[str, object]:
     trunk_geom = mujoco.mj_name2id(
         model, mujoco.mjtObj.mjOBJ_GEOM, "trunk_collision"
     )
-    assert float(model.geom_size[trunk_geom, 1]) >= 0.42
+    assert 0.310 <= float(model.geom_size[trunk_geom, 1]) <= 0.340
+    geom_names = [
+        mujoco.mj_id2name(model, mujoco.mjtObj.mjOBJ_GEOM, geom_id)
+        for geom_id in range(model.ngeom)
+    ]
+    assert all(
+        name is None or not name.startswith("scenery_")
+        for name in geom_names
+    )
     wheel_damping = []
     for name in ("left_wheel_joint", "right_wheel_joint"):
         joint_id = mujoco.mj_name2id(

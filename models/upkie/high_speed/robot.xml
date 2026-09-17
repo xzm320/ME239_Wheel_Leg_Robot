@@ -32,25 +32,25 @@ http://www.apache.org/licenses/LICENSE-2.0
     <body name="trunk" pos="0 0 0">
       <freejoint name="trunk_freejoint"/>
       <inertial pos="0.00014 0.00000 0.07200" mass="2.90"
-                fullinertia="0.062 0.0165 0.066 0 0 0"/>
+                fullinertia="0.055 0.016 0.052 0 0 0"/>
       <geom name="trunk_collision" type="box" pos="0 0 0.086"
-            size="0.095 0.438 0.048" rgba="0.34 0.28 0.60 1"/>
+            size="0.095 0.328 0.048" rgba="0.34 0.28 0.60 1"/>
       <geom name="trunk_pod" type="box" pos="0 0 0.148"
-            size="0.072 0.168 0.048" rgba="0.40 0.32 0.68 1"
+            size="0.072 0.126 0.048" rgba="0.40 0.32 0.68 1"
             contype="0" conaffinity="0"/>
-      <geom name="left_sponson" type="box" pos="0 0.370 0.076"
-            size="0.070 0.072 0.030" rgba="0.30 0.24 0.52 1"
+      <geom name="left_sponson" type="box" pos="0 0.278 0.076"
+            size="0.070 0.054 0.030" rgba="0.30 0.24 0.52 1"
             contype="0" conaffinity="0"/>
-      <geom name="right_sponson" type="box" pos="0 -0.370 0.076"
-            size="0.070 0.072 0.030" rgba="0.30 0.24 0.52 1"
+      <geom name="right_sponson" type="box" pos="0 -0.278 0.076"
+            size="0.070 0.054 0.030" rgba="0.30 0.24 0.52 1"
             contype="0" conaffinity="0"/>
-      <geom name="axle_beam" type="capsule" fromto="0 0.448 0.050 0 -0.448 0.050"
-            size="0.018" rgba="0.22 0.20 0.38 1"
+      <geom name="axle_beam" type="capsule" fromto="0 0.336 0.050 0 -0.336 0.050"
+            size="0.016" rgba="0.22 0.20 0.38 1"
             contype="0" conaffinity="0"/>
       <site name="imu" pos="-0.04095 0.04000 0.155" size="0.006"/>
 
       <!-- Left x-z compliant carrier. -->
-      <body name="left_hip_carrier" pos="0 0.4548 0.0602">
+      <body name="left_hip_carrier" pos="0 0.3411 0.0602">
         <joint name="left_hip_slide_x" type="slide" axis="1 0 0"
                range="-0.020 0.020" stiffness="3000" damping="100"
                springref="0" armature="0.02"/>
@@ -136,7 +136,7 @@ http://www.apache.org/licenses/LICENSE-2.0
       </body>
 
       <!-- Right x-z compliant carrier. -->
-      <body name="right_hip_carrier" pos="0 -0.4548 0.0602">
+      <body name="right_hip_carrier" pos="0 -0.3411 0.0602">
         <joint name="right_hip_slide_x" type="slide" axis="1 0 0"
                range="-0.020 0.020" stiffness="3000" damping="100"
                springref="0" armature="0.02"/>

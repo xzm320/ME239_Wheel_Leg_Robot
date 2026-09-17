@@ -123,9 +123,9 @@ def render(output_directory: Path) -> Path:
 
     camera = mujoco.MjvCamera()
     camera.type = mujoco.mjtCamera.mjCAMERA_FREE
-    camera.distance = 3.4
-    camera.azimuth = 128
-    camera.elevation = -11
+    camera.distance = 3.0
+    camera.azimuth = 110
+    camera.elevation = -7
     scene_option = mujoco.MjvOption()
     scene_option.geomgroup[3] = 1
 
@@ -135,6 +135,7 @@ def render(output_directory: Path) -> Path:
         next_frame_time = RECORD_START_S
         still_path = output_directory / "high_speed_rough_track_100kmh_v1.png"
         with mujoco.Renderer(model, height=540, width=800) as renderer:
+            renderer.scene.flags[mujoco.mjtRndFlag.mjRND_SHADOW] = True
             for _ in range(round(DURATION_S / model.opt.timestep)):
                 time_s = float(data.time)
                 target = (
@@ -155,6 +156,7 @@ def render(output_directory: Path) -> Path:
                     lateral_speed_m_s=float(data.qvel[1]),
                     yaw_rad=yaw,
                     yaw_rate_rad_s=float(data.qvel[5]),
+                    roll_rad=roll,
                     roll_rate_rad_s=float(data.qvel[3]),
                     forward_speed_m_s=float(data.qvel[0]),
                 )
@@ -172,9 +174,9 @@ def render(output_directory: Path) -> Path:
                     continue
 
                 camera.lookat[:] = (
-                    float(data.qpos[0]) + 1.35,
+                    float(data.qpos[0]) + 0.85,
                     float(data.qpos[1]),
-                    0.10,
+                    0.12,
                 )
                 renderer.update_scene(
                     data, camera=camera, scene_option=scene_option
