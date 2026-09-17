@@ -19,7 +19,6 @@ if __package__:
         compliance_parameters_for_speed,
         quaternion_roll_yaw,
         sample_preview_ground_heights,
-        stage_extension_from_leg_height,
         strut_spring_compensation,
     )
 else:
@@ -32,7 +31,6 @@ else:
         compliance_parameters_for_speed,
         quaternion_roll_yaw,
         sample_preview_ground_heights,
-        stage_extension_from_leg_height,
         strut_spring_compensation,
     )
 
@@ -114,34 +112,7 @@ def run_high_speed_episode(
     control_parameters = terrain_gains or high_speed_terrain_gains(mechanical)
     balance_parameters = balance_gains or high_speed_balance_gains()
     data = mujoco.MjData(model)
-    data.qpos[:7] = (
-        START_X_M,
-        0.0,
-        control_parameters.target_trunk_height_m,
-        1.0,
-        0.0,
-        0.0,
-        0.0,
-    )
-    initial_leg_height = (
-        control_parameters.target_trunk_height_m
-        + control_parameters.hip_offset_z_m
-        - control_parameters.wheel_radius_m
-    )
-    initial_stage = stage_extension_from_leg_height(
-        initial_leg_height,
-        control_parameters,
-    )
-    for joint_name in (
-        "left_strut_extension",
-        "left_strut_extension_stage2",
-        "right_strut_extension",
-        "right_strut_extension_stage2",
-    ):
-        joint_id = mujoco.mj_name2id(
-            model, mujoco.mjtObj.mjOBJ_JOINT, joint_name
-        )
-        data.qpos[int(model.jnt_qposadr[joint_id])] = initial_stage
+    data.qpos[:7] = (START_X_M, 0.0, 0.408, 1.0, 0.0, 0.0, 0.0)
     mujoco.mj_forward(model, data)
 
     wheel_actuators = _object_ids(
@@ -175,7 +146,6 @@ def run_high_speed_episode(
         control_parameters,
         balance_parameters,
     )
-    controller.stage_targets[:] = initial_stage
     ground = sample_preview_ground_heights(
         model, data, wheel_bodies, 0.0, control_parameters
     )
@@ -207,20 +177,6 @@ def run_high_speed_episode(
         control_parameters,
         balance_parameters,
     )
-    controller.stage_targets[:] = [
-        data.qpos[
-            int(
-                model.jnt_qposadr[
-                    mujoco.mj_name2id(
-                        model,
-                        mujoco.mjtObj.mjOBJ_JOINT,
-                        f"{side}_strut_extension",
-                    )
-                ]
-            )
-        ]
-        for side in ("left", "right")
-    ]
     initial_com_height = float(data.subtree_com[trunk_body, 2])
 
     speeds: list[float] = []
