@@ -92,8 +92,8 @@ def render(output_directory: Path) -> tuple[Path, Path]:
         raise RuntimeError("ffmpeg is required to encode the demonstration")
 
     output_directory.mkdir(parents=True, exist_ok=True)
-    video_path = output_directory / "flat_balance_speed_pid_v1.mp4"
-    chart_path = output_directory / "flat_balance_speed_tracking_v1.png"
+    video_path = output_directory / "flat_balance_speed_pid_v2.mp4"
+    chart_path = output_directory / "flat_balance_speed_tracking_v2.png"
 
     model = mujoco.MjModel.from_xml_path(str(MODEL_PATH))
     data = mujoco.MjData(model)
