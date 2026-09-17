@@ -98,8 +98,8 @@ def render(output_directory: Path) -> tuple[Path, Path]:
     if shutil.which("ffmpeg") is None:
         raise RuntimeError("ffmpeg is required to encode the demonstration")
     output_directory.mkdir(parents=True, exist_ok=True)
-    video_path = output_directory / "joint_control_medium_terrain_v1.mp4"
-    chart_path = output_directory / "joint_control_medium_metrics_v1.png"
+    video_path = output_directory / "joint_control_medium_terrain_wide_v2.mp4"
+    chart_path = output_directory / "joint_control_medium_metrics_v2.png"
 
     model = mujoco.MjModel.from_xml_path(str(MODEL_PATH))
     data = mujoco.MjData(model)
@@ -126,9 +126,9 @@ def render(output_directory: Path) -> tuple[Path, Path]:
 
     camera = mujoco.MjvCamera()
     camera.type = mujoco.mjtCamera.mjCAMERA_FREE
-    camera.distance = 1.55
-    camera.azimuth = 90
-    camera.elevation = -12
+    camera.distance = 3.0
+    camera.azimuth = 116
+    camera.elevation = -20
 
     times: list[float] = []
     targets: list[float] = []
@@ -175,7 +175,7 @@ def render(output_directory: Path) -> tuple[Path, Path]:
 
                 if time_s + 1e-9 >= next_frame_time:
                     camera.lookat[:] = (
-                        float(data.qpos[0]),
+                        float(data.qpos[0]) + 0.45,
                         float(data.qpos[1]),
                         0.24,
                     )

@@ -241,7 +241,7 @@ def _scene_xml(spec: TerrainSpec, obstacles: list[dict[str, object]]) -> str:
             f'pos="{" ".join(f"{value:.6f}" for value in obstacle["position"])}" '
             f'size="{" ".join(f"{value:.6f}" for value in obstacle["size"])}" '
             f'quat="{" ".join(f"{value:.8f}" for value in obstacle["quaternion"])}" '
-            'group="3" rgba="0.48 0.34 0.22 1" '
+            'group="3" rgba="0.82 0.32 0.10 1" '
             'friction="1.2 0.02 0.002" condim="3"/>'
         )
         for obstacle in obstacles
@@ -262,8 +262,8 @@ combined with explicit randomized box and cylinder geometries. -->
     <texture type="skybox" builtin="gradient" rgb1="0.38 0.52 0.70"
              rgb2="0.04 0.05 0.07" width="512" height="3072"/>
     <texture type="2d" name="{spec.name}_grid" builtin="checker" mark="edge"
-             rgb1="0.26 0.30 0.22" rgb2="0.12 0.16 0.11"
-             markrgb="0.75 0.80 0.65" width="512" height="512"/>
+             rgb1="0.52 0.42 0.24" rgb2="0.27 0.20 0.10"
+             markrgb="0.95 0.88 0.64" width="512" height="512"/>
     <material name="{spec.name}_ground" texture="{spec.name}_grid"
               texuniform="true" texrepeat="20 4" reflectance="0.08"/>
   </asset>
