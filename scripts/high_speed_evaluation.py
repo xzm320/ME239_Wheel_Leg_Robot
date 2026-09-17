@@ -102,6 +102,8 @@ def run_high_speed_episode(
     target_speed_m_s: float,
     *,
     compliance: ComplianceParameters | None = None,
+    terrain_gains: TerrainControlGains | None = None,
+    balance_gains: BalanceGains | None = None,
     duration_s: float = 12.0,
 ) -> HighSpeedResult:
     mechanical = compliance or compliance_parameters_for_speed(target_speed_m_s)
@@ -137,15 +139,15 @@ def run_high_speed_episode(
         model, mujoco.mjtObj.mjOBJ_BODY, "trunk"
     )
 
-    terrain_gains = high_speed_terrain_gains(mechanical)
-    balance_gains = high_speed_balance_gains()
+    control_parameters = terrain_gains or high_speed_terrain_gains(mechanical)
+    balance_parameters = balance_gains or high_speed_balance_gains()
     controller = JointTerrainController(
         float(model.opt.timestep),
-        terrain_gains,
-        balance_gains,
+        control_parameters,
+        balance_parameters,
     )
     ground = sample_preview_ground_heights(
-        model, data, wheel_bodies, 0.0, terrain_gains
+        model, data, wheel_bodies, 0.0, control_parameters
     )
 
     # Settle contact penetration before imposing a no-slip rolling state.
@@ -172,8 +174,8 @@ def run_high_speed_episode(
     mujoco.mj_forward(model, data)
     controller = JointTerrainController(
         float(model.opt.timestep),
-        terrain_gains,
-        balance_gains,
+        control_parameters,
+        balance_parameters,
     )
     initial_com_height = float(data.subtree_com[trunk_body, 2])
 
@@ -189,7 +191,7 @@ def run_high_speed_episode(
         data,
         wheel_bodies,
         target_speed_m_s,
-        terrain_gains,
+        control_parameters,
     )
 
     for step in range(round(duration_s / model.opt.timestep)):
@@ -199,7 +201,7 @@ def run_high_speed_episode(
                 data,
                 wheel_bodies,
                 float(data.qvel[0]),
-                terrain_gains,
+                control_parameters,
             )
         output = controller.update(
             target_speed_m_s=target_speed_m_s,
