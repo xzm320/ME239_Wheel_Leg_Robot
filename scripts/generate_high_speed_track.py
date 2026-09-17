@@ -74,14 +74,6 @@ def _smooth_2d(
     return blurred
 
 
-def _cosine_pulse(delta: np.ndarray, length_m: float) -> np.ndarray:
-    half = 0.5 * length_m
-    pulse = np.zeros_like(delta)
-    inside = np.abs(delta) <= half
-    pulse[inside] = 0.5 * (1.0 + np.cos(math.pi * delta[inside] / half))
-    return pulse
-
-
 def generate_heightfield() -> tuple[np.ndarray, dict[str, float]]:
     rng = np.random.default_rng(SEED)
     x = np.linspace(-LENGTH_M / 2.0, LENGTH_M / 2.0, NX)
@@ -91,37 +83,38 @@ def generate_heightfield() -> tuple[np.ndarray, dict[str, float]]:
     grid_y, grid_x = np.meshgrid(y, x, indexing="ij")
 
     # Multi-octave 2D roughness so left and right wheels see different ground.
-    hills = 0.024 * _smooth_2d(
-        rng.normal(size=(NY, NX)), 8.0 / dx, 6.0 / dy
+    hills = 0.028 * _smooth_2d(
+        rng.normal(size=(NY, NX)), 10.0 / dx, 7.5 / dy
     )
-    medium = 0.014 * _smooth_2d(
-        rng.normal(size=(NY, NX)), 3.2 / dx, 2.5 / dy
+    medium = 0.012 * _smooth_2d(
+        rng.normal(size=(NY, NX)), 4.4 / dx, 3.4 / dy
     )
-    ripple = 0.007 * _smooth_2d(
-        rng.normal(size=(NY, NX)), 1.3 / dx, 1.2 / dy
+    ripple = 0.005 * _smooth_2d(
+        rng.normal(size=(NY, NX)), 2.4 / dx, 2.0 / dy
     )
     heights = hills + medium + ripple
 
-    # Isolated cosine whoops: readable silhouette without an 18 Hz washboard.
-    whoop_x = -250.0
+    # Isolated Gaussian whoops. A compact cosine pulse looks like a spike at
+    # 0.3 m resolution; a 6–8 m mound keeps the side-on silhouette without
+    # hammering pitch at 28 m/s.
+    whoop_x = -245.0
     whoop_index = 0
     while whoop_x < 760.0:
-        length = float(rng.uniform(3.2, 4.8))
-        gap = float(rng.uniform(5.8, 8.6))
-        height = float(rng.uniform(0.070, 0.108))
-        if whoop_index == 0:
-            height *= 0.45
-        elif whoop_index == 1:
-            height *= 0.68
-        elif whoop_index == 2:
-            height *= 0.85
-        tilt = float(rng.uniform(-0.008, 0.008))
-        pulse = _cosine_pulse(grid_x - whoop_x, length)
+        sigma = float(rng.uniform(2.5, 3.6))
+        gap = float(rng.uniform(11.0, 16.5))
+        height = float(rng.uniform(0.078, 0.118))
+        ramp = float(np.clip((whoop_x + 245.0) / 220.0, 0.0, 1.0))
+        height *= 0.42 + 0.58 * ramp
+        tilt = float(rng.uniform(-0.005, 0.005))
         lateral = 1.0 + 0.10 * np.sin(
             2.0 * math.pi * grid_y / 9.0 + rng.uniform(0.0, 6.0)
         )
-        heights += pulse * (height + tilt * grid_y) * lateral
-        whoop_x += 0.5 * length + gap
+        heights += (
+            (height + tilt * grid_y)
+            * lateral
+            * np.exp(-0.5 * ((grid_x - whoop_x) / sigma) ** 2)
+        )
+        whoop_x += 2.2 * sigma + gap
         whoop_index += 1
 
     # Rounded 2D dirt piles on and beside the racing line.
@@ -170,7 +163,7 @@ def generate_heightfield() -> tuple[np.ndarray, dict[str, float]]:
         ),
         "flat_launch_end_x_m": -500.0,
         "rough_start_x_m": -300.0,
-        "whoop_start_x_m": -250.0,
+        "whoop_start_x_m": -245.0,
         "whoop_count": whoop_index,
     }
 

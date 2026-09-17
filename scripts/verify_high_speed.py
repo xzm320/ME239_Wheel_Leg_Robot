@@ -48,8 +48,10 @@ def verify() -> dict[str, object]:
     hundred = run_hundred_kmh_episode()
     assert hundred.wheel_track_scale == HUNDRED_KMH_WHEEL_TRACK_SCALE
     assert hundred.peak_speed_m_s > 27.5
-    assert hundred.distance_m > 900.0
-    assert hundred.maximum_pitch_deg < 24.0
+    assert hundred.stable
+    assert hundred.distance_m > 1000.0
+    assert hundred.maximum_pitch_deg < 12.0
+    assert abs(hundred.final_y_m) < 3.0
 
     model = mujoco.MjModel.from_xml_path(str(MODEL_PATH))
     trunk_geom = mujoco.mj_name2id(

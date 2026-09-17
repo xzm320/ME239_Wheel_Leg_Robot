@@ -55,8 +55,8 @@ TRUNK_COM_Z_OFFSET_M = 0.0
 ROUGH_START_X_M = -300.0
 TARGET_100_KMH_M_S = 100.0 / 3.6
 HUNDRED_KMH_WHEEL_TRACK_SCALE = 4.0
-HUNDRED_KMH_STRUT_KP = 1400.0
-HUNDRED_KMH_STRUT_KV = 80.0
+HUNDRED_KMH_STRUT_KP = 4000.0
+HUNDRED_KMH_STRUT_KV = 90.0
 
 
 @dataclass(frozen=True)
@@ -108,7 +108,7 @@ def hundred_kmh_balance_gains() -> BalanceGains:
 
     return BalanceGains(
         pitch_kp=465.6879,
-        pitch_kd=32.0,
+        pitch_kd=36.0,
         speed_kp=0.030,
         speed_ki=0.0,
         pitch_reference_limit_rad=0.085,
