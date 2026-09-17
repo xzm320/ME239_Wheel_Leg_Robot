@@ -53,7 +53,7 @@ else:
 
 ACCEL_M_S2 = 0.70
 FPS = 24
-RECORD_START_S = 50.5
+RECORD_START_S = 55.5
 DURATION_S = 64.0
 
 
@@ -123,9 +123,9 @@ def render(output_directory: Path) -> Path:
 
     camera = mujoco.MjvCamera()
     camera.type = mujoco.mjtCamera.mjCAMERA_FREE
-    camera.distance = 3.8
-    camera.azimuth = 116
-    camera.elevation = -22
+    camera.distance = 3.2
+    camera.azimuth = 108
+    camera.elevation = -14
     scene_option = mujoco.MjvOption()
     scene_option.geomgroup[3] = 1
 
@@ -172,9 +172,9 @@ def render(output_directory: Path) -> Path:
                     continue
 
                 camera.lookat[:] = (
-                    float(data.qpos[0]) + 1.15,
+                    float(data.qpos[0]) + 0.70,
                     float(data.qpos[1]),
-                    0.06,
+                    0.16,
                 )
                 renderer.update_scene(
                     data, camera=camera, scene_option=scene_option

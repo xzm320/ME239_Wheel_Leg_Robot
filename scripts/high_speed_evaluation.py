@@ -132,8 +132,8 @@ def hundred_kmh_heading_torque_nm(
     if forward_speed_m_s < 8.0:
         return 0.0
     scale = float(np.clip((forward_speed_m_s - 8.0) / 12.0, 0.0, 1.0))
-    torque = 0.55 * yaw_rad + 0.16 * yaw_rate_rad_s
-    return float(np.clip(scale * torque, -0.10, 0.10))
+    torque = 0.72 * yaw_rad + 0.20 * yaw_rate_rad_s
+    return float(np.clip(scale * torque, -0.14, 0.14))
 
 
 def apply_hundred_kmh_suspension(model: mujoco.MjModel) -> None:

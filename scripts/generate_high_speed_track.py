@@ -28,7 +28,7 @@ LENGTH_M = 3000.0
 WIDTH_M = 64.0
 NX = 10001
 NY = 257
-AMPLITUDE_M = 0.16
+AMPLITUDE_M = 0.20
 SEED = 9144
 
 
@@ -102,7 +102,7 @@ def generate_heightfield() -> tuple[np.ndarray, dict[str, float]]:
     while whoop_x < 760.0:
         sigma = float(rng.uniform(2.5, 3.6))
         gap = float(rng.uniform(11.0, 16.5))
-        height = float(rng.uniform(0.078, 0.118))
+        height = float(rng.uniform(0.105, 0.155))
         ramp = float(np.clip((whoop_x + 245.0) / 220.0, 0.0, 1.0))
         height *= 0.42 + 0.58 * ramp
         tilt = float(rng.uniform(-0.005, 0.005))
@@ -142,7 +142,7 @@ def generate_heightfield() -> tuple[np.ndarray, dict[str, float]]:
     ratio = (x[transition] - 780.0) / 120.0
     envelope[transition] = 0.5 + 0.5 * np.cos(math.pi * ratio)
     heights *= envelope[np.newaxis, :]
-    heights = AMPLITUDE_M * np.tanh(heights / 0.11)
+    heights = AMPLITUDE_M * np.tanh(heights / 0.14)
 
     slope_y, slope_x = np.gradient(heights, dy, dx)
     active = (x >= -300.0) & (x <= 760.0)
@@ -177,7 +177,7 @@ def generate_scenery_props() -> list[dict[str, object]]:
     index = 0
     while x < 740.0:
         side = 1.0 if index % 2 == 0 else -1.0
-        y = side * float(rng.uniform(5.4, 9.6))
+        y = side * float(rng.uniform(2.3, 4.2))
         radius = float(rng.uniform(0.16, 0.24))
         half_length = float(rng.uniform(1.1, 1.8))
         props.append(
@@ -191,7 +191,7 @@ def generate_scenery_props() -> list[dict[str, object]]:
             }
         )
         mound_x = x + float(rng.uniform(2.4, 4.2))
-        mound_y = -side * float(rng.uniform(4.8, 8.8))
+        mound_y = -side * float(rng.uniform(2.4, 4.0))
         props.append(
             {
                 "name": f"scenery_mound_{index:02d}",
@@ -276,7 +276,7 @@ def generate() -> dict[str, object]:
              rgb1="0.66 0.50 0.26" rgb2="0.24 0.16 0.08"
              markrgb="0.94 0.82 0.50" width="512" height="512"/>
     <material name="track" texture="track_grid" texuniform="true"
-              texrepeat="420 28" reflectance="0.03"/>
+              texrepeat="72 8" reflectance="0.03"/>
   </asset>
   <worldbody>
     <light pos="10 -20 3.2" dir="-0.18 0.82 -0.42" directional="true"
