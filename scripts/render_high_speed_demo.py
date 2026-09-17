@@ -98,6 +98,10 @@ def render(output_directory: Path) -> Path:
 
     model = mujoco.MjModel.from_xml_path(str(MODEL_PATH))
     apply_compliance_parameters(model, HUNDRED_KMH_COMPLIANCE)
+    # Large heightfields inflate model extent and clip a 3 m follow camera.
+    model.stat.extent = 3.0
+    model.vis.map.znear = 0.01
+    model.vis.map.zfar = 80.0
     data = mujoco.MjData(model)
     data.qpos[:7] = (START_X_M, 0.0, 0.408, 1.0, 0.0, 0.0, 0.0)
     mujoco.mj_forward(model, data)
