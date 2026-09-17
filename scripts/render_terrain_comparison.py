@@ -96,9 +96,15 @@ def render(output_directory: Path) -> Path:
             camera.distance = 1.35
             camera.azimuth = 132
             camera.elevation = -9
+            scene_option = mujoco.MjvOption()
+            scene_option.geomgroup[3] = 1
 
             with mujoco.Renderer(model, height=480, width=640) as renderer:
-                renderer.update_scene(data, camera=camera)
+                renderer.update_scene(
+                    data,
+                    camera=camera,
+                    scene_option=scene_option,
+                )
                 pixels = renderer.render()
             assert np.std(pixels) > 1.0
             raw_path = temporary_directory / f"{spec.name}.ppm"
