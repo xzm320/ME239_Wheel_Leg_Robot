@@ -156,6 +156,8 @@ def lane_held(result: PerlinSpeedResult) -> bool:
         return False
     if abs(result.final_y_m) >= 1.2 or result.maximum_roll_deg >= 12.0:
         return False
+    if result.target_speed_m_s < 0.05:
+        return abs(result.cruise_speed_m_s) < 0.15
     if result.cruise_speed_m_s < 0.70 * result.target_speed_m_s:
         return False
     return True
