@@ -276,7 +276,7 @@ def generate() -> dict[str, object]:
              rgb1="0.66 0.50 0.26" rgb2="0.24 0.16 0.08"
              markrgb="0.94 0.82 0.50" width="512" height="512"/>
     <material name="track" texture="track_grid" texuniform="true"
-              texrepeat="72 8" reflectance="0.03"/>
+              texrepeat="36 4" reflectance="0.03"/>
   </asset>
   <worldbody>
     <light pos="10 -20 3.2" dir="-0.18 0.82 -0.42" directional="true"

@@ -123,9 +123,9 @@ def render(output_directory: Path) -> Path:
 
     camera = mujoco.MjvCamera()
     camera.type = mujoco.mjtCamera.mjCAMERA_FREE
-    camera.distance = 3.2
-    camera.azimuth = 108
-    camera.elevation = -14
+    camera.distance = 3.4
+    camera.azimuth = 128
+    camera.elevation = -11
     scene_option = mujoco.MjvOption()
     scene_option.geomgroup[3] = 1
 
@@ -172,9 +172,9 @@ def render(output_directory: Path) -> Path:
                     continue
 
                 camera.lookat[:] = (
-                    float(data.qpos[0]) + 0.70,
+                    float(data.qpos[0]) + 1.35,
                     float(data.qpos[1]),
-                    0.16,
+                    0.10,
                 )
                 renderer.update_scene(
                     data, camera=camera, scene_option=scene_option
