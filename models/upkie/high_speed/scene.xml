@@ -8,14 +8,14 @@
   </visual>
   <asset>
     <hfield name="high_speed_track" file="heightfield.png"
-            size="200 3 0.060000 0.10"/>
+            size="300 3 0.060000 0.10"/>
     <texture type="skybox" builtin="gradient" rgb1="0.42 0.58 0.76"
              rgb2="0.05 0.06 0.08" width="512" height="3072"/>
     <texture type="2d" name="track_grid" builtin="checker" mark="edge"
              rgb1="0.55 0.44 0.24" rgb2="0.25 0.18 0.09"
              markrgb="0.95 0.88 0.62" width="512" height="512"/>
     <material name="track" texture="track_grid" texuniform="true"
-              texrepeat="200 6" reflectance="0.06"/>
+              texrepeat="300 6" reflectance="0.06"/>
   </asset>
   <worldbody>
     <light pos="-5 -4 8" dir="0.3 0.2 -1" directional="true"/>

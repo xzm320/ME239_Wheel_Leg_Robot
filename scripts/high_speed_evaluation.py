@@ -42,7 +42,7 @@ MODEL_PATH = (
     / "scene.xml"
 )
 WHEEL_RADIUS_M = 0.120
-START_X_M = -180.0
+START_X_M = -280.0
 
 
 @dataclass(frozen=True)
