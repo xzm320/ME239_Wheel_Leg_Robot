@@ -128,7 +128,6 @@ def render(output_directory: Path) -> Path:
     camera.elevation = -22
     scene_option = mujoco.MjvOption()
     scene_option.geomgroup[3] = 1
-    scene_option.flags[mujoco.mjtVisFlag.mjVIS_SHADOW] = True
 
     with tempfile.TemporaryDirectory(prefix="high_speed_demo_") as temporary:
         frame_directory = Path(temporary)
