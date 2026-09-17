@@ -104,10 +104,13 @@ def run_high_speed_episode(
     compliance: ComplianceParameters | None = None,
     terrain_gains: TerrainControlGains | None = None,
     balance_gains: BalanceGains | None = None,
+    simulation_timestep_s: float | None = None,
     duration_s: float = 12.0,
 ) -> HighSpeedResult:
     mechanical = compliance or compliance_parameters_for_speed(target_speed_m_s)
     model = mujoco.MjModel.from_xml_path(str(MODEL_PATH))
+    if simulation_timestep_s is not None:
+        model.opt.timestep = simulation_timestep_s
     apply_compliance_parameters(model, mechanical)
     control_parameters = terrain_gains or high_speed_terrain_gains(mechanical)
     balance_parameters = balance_gains or high_speed_balance_gains()
