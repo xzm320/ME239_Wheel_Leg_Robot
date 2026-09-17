@@ -35,6 +35,8 @@ class TerrainControlGains:
     roll_kd: float = 0.015922
     yaw_kp: float = 8.0
     yaw_kd: float = 1.0
+    roll_torque_kp: float = 0.0
+    roll_torque_kd: float = 0.0
     differential_torque_limit_nm: float = 2.5
     preview_base_m: float = 0.080
     preview_time_s: float = 0.030
@@ -257,18 +259,32 @@ class JointTerrainController:
         differential_torque = float(
             np.clip(
                 gains.yaw_kp * yaw
-                + gains.yaw_kd * float(angular_velocity_xyz[2]),
+                + gains.yaw_kd * float(angular_velocity_xyz[2])
+                + gains.roll_torque_kp * roll
+                + gains.roll_torque_kd * float(angular_velocity_xyz[0]),
                 -gains.differential_torque_limit_nm,
                 gains.differential_torque_limit_nm,
             )
         )
+        torque_limit = self.balance.gains.wheel_torque_limit_nm
+        common_torque_limit = max(
+            torque_limit - abs(differential_torque),
+            0.0,
+        )
+        common_torque = float(
+            np.clip(
+                balance.wheel_torque_nm,
+                -common_torque_limit,
+                common_torque_limit,
+            )
+        )
         wheel_torques = np.clip(
             (
-                balance.wheel_torque_nm + differential_torque,
-                balance.wheel_torque_nm - differential_torque,
+                common_torque + differential_torque,
+                common_torque - differential_torque,
             ),
-            -self.balance.gains.wheel_torque_limit_nm,
-            self.balance.gains.wheel_torque_limit_nm,
+            -torque_limit,
+            torque_limit,
         )
 
         height_correction = (
