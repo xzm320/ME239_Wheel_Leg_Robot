@@ -105,12 +105,28 @@ def run_high_speed_episode(
     terrain_gains: TerrainControlGains | None = None,
     balance_gains: BalanceGains | None = None,
     simulation_timestep_s: float | None = None,
+    tire_contact_time_constant_s: float | None = None,
+    tire_contact_damping_ratio: float = 1.0,
+    tire_friction: float | None = None,
     duration_s: float = 12.0,
 ) -> HighSpeedResult:
     mechanical = compliance or compliance_parameters_for_speed(target_speed_m_s)
     model = mujoco.MjModel.from_xml_path(str(MODEL_PATH))
     if simulation_timestep_s is not None:
         model.opt.timestep = simulation_timestep_s
+    if tire_contact_time_constant_s is not None or tire_friction is not None:
+        for body_name in ("left_wheel", "right_wheel"):
+            body_id = mujoco.mj_name2id(
+                model, mujoco.mjtObj.mjOBJ_BODY, body_name
+            )
+            geom_id = int(model.body_geomadr[body_id])
+            if tire_contact_time_constant_s is not None:
+                model.geom_solref[geom_id] = (
+                    tire_contact_time_constant_s,
+                    tire_contact_damping_ratio,
+                )
+            if tire_friction is not None:
+                model.geom_friction[geom_id, 0] = tire_friction
     apply_compliance_parameters(model, mechanical)
     control_parameters = terrain_gains or high_speed_terrain_gains(mechanical)
     balance_parameters = balance_gains or high_speed_balance_gains()
