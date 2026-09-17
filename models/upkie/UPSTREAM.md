@@ -7,7 +7,9 @@ This directory vendors the Upkie variant from
 - Retrieved: 2026-09-16
 - Upstream path: `src/mjlab_upkie/robot/upkie/`
 - License: Apache-2.0; see `LICENSE`
-- Local changes to `upstream/`: none
+- Local changes to `upstream/robot.xml`: none
+- Generated beside the vendor tree (not from upstream): `scene_perlin.xml`
+  and `assets/perlin_strip.png` for the Unitree-scale speed-test strip
 
 The model is Marc Duclusaud's physical Upkie variant rather than an official
 MJCF published by the Upkie project. Its nominal model mass is 5.4605 kg.

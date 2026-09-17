@@ -185,6 +185,115 @@ class BalanceSpeedController:
         return ControlOutput(torque, self.pitch_reference, self.speed_integral)
 
 
+class VelocityWheelController:
+    """Pitch PD on wheel *velocity* commands, for the stock Upkie actuators."""
+
+    def __init__(self, timestep: float, gains: BalanceGains | None = None) -> None:
+        self.timestep = timestep
+        self.gains = gains or BalanceGains()
+        self.reset()
+
+    def reset(self) -> None:
+        self.speed_integral = 0.0
+        self.pitch_reference = 0.0
+
+    def update(
+        self,
+        *,
+        target_speed_m_s: float,
+        forward_speed_m_s: float,
+        pitch_rad: float,
+        pitch_rate_rad_s: float,
+        wheel_radius_m: float = 0.120,
+    ) -> ControlOutput:
+        gains = self.gains
+        speed_error = target_speed_m_s - forward_speed_m_s
+        self.speed_integral = float(
+            np.clip(
+                self.speed_integral + speed_error * self.timestep,
+                -gains.speed_integral_limit,
+                gains.speed_integral_limit,
+            )
+        )
+        raw_pitch_reference = float(
+            np.clip(
+                gains.speed_kp * speed_error + gains.speed_ki * self.speed_integral,
+                -gains.pitch_reference_limit_rad,
+                gains.pitch_reference_limit_rad,
+            )
+        )
+        maximum_reference_step = gains.pitch_reference_rate_rad_s * self.timestep
+        self.pitch_reference += float(
+            np.clip(
+                raw_pitch_reference - self.pitch_reference,
+                -maximum_reference_step,
+                maximum_reference_step,
+            )
+        )
+        omega = target_speed_m_s / wheel_radius_m + (
+            gains.pitch_kp * (pitch_rad - self.pitch_reference)
+            + gains.pitch_kd * pitch_rate_rad_s
+        )
+        omega = float(np.clip(omega, -gains.wheel_torque_limit_nm, gains.wheel_torque_limit_nm))
+        return ControlOutput(omega, self.pitch_reference, self.speed_integral)
+
+
+def upkie_balance_gains() -> BalanceGains:
+    """Stock GitHub Upkie. Velocity wheels emulate torque through kv=0.05."""
+
+    return BalanceGains(
+        pitch_kp=24.0,
+        pitch_kd=4.0,
+        speed_kp=0.11,
+        speed_ki=0.003,
+        pitch_reference_limit_rad=0.12,
+        pitch_reference_rate_rad_s=0.28,
+        wheel_torque_limit_nm=1.7,
+    )
+
+
+def upkie_heading_gains() -> HeadingGains:
+    return HeadingGains(
+        yaw_kp=0.22,
+        yaw_kd=0.07,
+        lateral_kp=0.14,
+        lateral_kd=0.08,
+        roll_kp=0.70,
+        roll_kd=0.12,
+        torque_limit_nm=0.40,
+        engage_speed_m_s=0.12,
+        blend_speed_m_s=0.40,
+    )
+
+
+def perlin_wide_balance_gains() -> BalanceGains:
+    """3× four-bar on the same Unitree Perlin strip."""
+
+    return BalanceGains(
+        pitch_kp=380.0,
+        pitch_kd=90.0,
+        speed_kp=0.055,
+        speed_ki=0.0,
+        pitch_reference_limit_rad=0.09,
+        pitch_reference_rate_rad_s=0.18,
+        wheel_torque_limit_nm=6.0,
+    )
+
+
+def perlin_wide_heading_gains() -> HeadingGains:
+    return HeadingGains(
+        yaw_kp=0.55,
+        yaw_kd=0.22,
+        lateral_kp=0.12,
+        lateral_kd=0.08,
+        roll_kp=1.6,
+        roll_kd=0.35,
+        torque_limit_nm=0.32,
+        engage_speed_m_s=0.3,
+        blend_speed_m_s=1.0,
+    )
+
+
 def quaternion_pitch(quaternion_wxyz: np.ndarray) -> float:
     """Return world-frame pitch for a MuJoCo w-x-y-z quaternion."""
 
