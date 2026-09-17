@@ -9,9 +9,13 @@ import mujoco
 import numpy as np
 
 if __package__:
-    from scripts.balance_controller import BalanceSpeedController, quaternion_pitch
+    from scripts.balance_controller import (
+        BalanceGains,
+        BalanceSpeedController,
+        quaternion_pitch,
+    )
 else:
-    from balance_controller import BalanceSpeedController, quaternion_pitch
+    from balance_controller import BalanceGains, BalanceSpeedController, quaternion_pitch
 
 
 @dataclass(frozen=True)
@@ -46,6 +50,16 @@ class ComplianceParameters:
     hip_z_damping_n_s_m: float = 180.0
     strut_equivalent_stiffness_n_m: float = 800.0
     strut_equivalent_damping_n_s_m: float = 50.0
+
+
+HIGH_SPEED_COMPLIANCE = ComplianceParameters(
+    hip_x_stiffness_n_m=3000.0,
+    hip_x_damping_n_s_m=140.0,
+    hip_z_stiffness_n_m=7000.0,
+    hip_z_damping_n_s_m=220.0,
+    strut_equivalent_stiffness_n_m=800.0,
+    strut_equivalent_damping_n_s_m=60.0,
+)
 
 
 @dataclass(frozen=True)
@@ -144,6 +158,46 @@ def strut_spring_compensation(
     )
 
 
+def compliance_parameters_for_speed(
+    speed_m_s: float,
+) -> ComplianceParameters:
+    """Blend low-speed rough-terrain and high-speed damping settings."""
+
+    low_speed = ComplianceParameters()
+    blend = float(np.clip((abs(speed_m_s) - 3.0) / 5.0, 0.0, 1.0))
+    return ComplianceParameters(
+        hip_x_stiffness_n_m=low_speed.hip_x_stiffness_n_m,
+        hip_x_damping_n_s_m=(
+            low_speed.hip_x_damping_n_s_m
+            + blend
+            * (
+                HIGH_SPEED_COMPLIANCE.hip_x_damping_n_s_m
+                - low_speed.hip_x_damping_n_s_m
+            )
+        ),
+        hip_z_stiffness_n_m=low_speed.hip_z_stiffness_n_m,
+        hip_z_damping_n_s_m=(
+            low_speed.hip_z_damping_n_s_m
+            + blend
+            * (
+                HIGH_SPEED_COMPLIANCE.hip_z_damping_n_s_m
+                - low_speed.hip_z_damping_n_s_m
+            )
+        ),
+        strut_equivalent_stiffness_n_m=(
+            low_speed.strut_equivalent_stiffness_n_m
+        ),
+        strut_equivalent_damping_n_s_m=(
+            low_speed.strut_equivalent_damping_n_s_m
+            + blend
+            * (
+                HIGH_SPEED_COMPLIANCE.strut_equivalent_damping_n_s_m
+                - low_speed.strut_equivalent_damping_n_s_m
+            )
+        ),
+    )
+
+
 class JointTerrainController:
     """Balance and yaw torques plus previewed independent leg lengths."""
 
@@ -151,10 +205,11 @@ class JointTerrainController:
         self,
         timestep: float,
         gains: TerrainControlGains | None = None,
+        balance_gains: BalanceGains | None = None,
     ) -> None:
         self.timestep = timestep
         self.gains = gains or TerrainControlGains()
-        self.balance = BalanceSpeedController(timestep)
+        self.balance = BalanceSpeedController(timestep, balance_gains)
         self.stage_targets = np.zeros(2)
 
     def reset(self) -> None:

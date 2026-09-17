@@ -71,6 +71,13 @@ changes from 10.94 to 11.02 mm, so the impact reduction is not obtained by
 allowing materially larger body-height motion. Reproduce the search with
 `uv run python scripts/tune_compliance.py`.
 
+For the smooth high-speed track, stiffness remains unchanged while semi-active
+damping is scheduled from the table above to 140 N·s/m in hip x, 220 N·s/m in
+hip z, and 60 N·s/m in the complete crossbar by 8 m/s. A full 27-candidate
+damping grid found this to be the only setting stable at all of 9.7, 10.0, and
+10.3 m/s. This schedule assumes controllable dampers; a purely passive build
+must choose one operating-point compromise.
+
 ## Mass and scope
 
 The model is 5.6185 kg. Per-leg moving mass is held within 1 g of the imported
@@ -82,8 +89,10 @@ actuators with a symmetric ±6 N·m peak torque limit. Direct torque input is
 required by the cascaded balance controller, and the higher peak limit is an
 explicit high-speed drivetrain upgrade rather than a controller-only change.
 The larger wheels retain the lightweight 0.2385 kg design mass but have higher
-rotational inertia from their 120 mm radius. Continuous motor and thermal
-limits are not yet modeled.
+rotational inertia from their 120 mm radius. Wheel-joint damping is explicitly
+0.005 N·m·s/rad; the inherited 0.15 value would dissipate 27.8 N·m at 80 km/h
+and was therefore not a physically valid high-speed bearing model. Continuous
+motor and thermal limits are not yet modeled.
 
 Link collision is intentionally disabled in this mechanism-validation model
 to prevent adjacent capsules at ideal pin joints from self-penetrating.

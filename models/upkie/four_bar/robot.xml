@@ -99,7 +99,8 @@ http://www.apache.org/licenses/LICENSE-2.0
               <inertial pos="0 0 0" mass="0.02" diaginertia="0.00002 0.00002 0.00002"/>
               <site name="left_bottom_closure" size="0.008"/>
               <body name="left_wheel">
-                <joint name="left_wheel_joint" type="hinge" axis="0 1 0"/>
+                <joint name="left_wheel_joint" type="hinge" axis="0 1 0"
+                       damping="0.005"/>
                 <geom class="wheel" quat="0.7071068 0.7071068 0 0" mass="0.2385"/>
               </body>
             </body>
@@ -183,7 +184,8 @@ http://www.apache.org/licenses/LICENSE-2.0
               <inertial pos="0 0 0" mass="0.02" diaginertia="0.00002 0.00002 0.00002"/>
               <site name="right_bottom_closure" size="0.008"/>
               <body name="right_wheel">
-                <joint name="right_wheel_joint" type="hinge" axis="0 1 0"/>
+                <joint name="right_wheel_joint" type="hinge" axis="0 1 0"
+                       damping="0.005"/>
                 <geom class="wheel" quat="0.7071068 0.7071068 0 0" mass="0.2385"/>
               </body>
             </body>
