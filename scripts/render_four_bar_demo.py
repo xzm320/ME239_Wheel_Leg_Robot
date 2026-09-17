@@ -44,14 +44,14 @@ def _desired_extension(time_s: float) -> float:
     if time_s < 0.8:
         return 0.0
     if time_s < 1.8:
-        return 0.040 * _smoothstep(0.8, 1.8, time_s)
+        return 0.094 * _smoothstep(0.8, 1.8, time_s)
     if time_s < 2.4:
-        return 0.040
+        return 0.094
     if time_s < 3.4:
         blend = _smoothstep(2.4, 3.4, time_s)
-        return 0.040 + (-0.035 - 0.040) * blend
+        return 0.094 + (-0.020 - 0.094) * blend
     if time_s < 4.0:
-        return -0.035
+        return -0.020
     return 0.0
 
 
@@ -65,8 +65,8 @@ def render(output_directory: Path) -> tuple[Path, Path]:
         raise RuntimeError("ffmpeg is required to encode the demonstration")
 
     output_directory.mkdir(parents=True, exist_ok=True)
-    video_path = output_directory / "four_bar_active_passive_demo_v2.mp4"
-    states_path = output_directory / "four_bar_three_states_v2.png"
+    video_path = output_directory / "four_bar_active_passive_demo_v3.mp4"
+    states_path = output_directory / "four_bar_three_states_v3.png"
 
     model = mujoco.MjModel.from_xml_path(str(MODEL_PATH))
     model.opt.gravity[:] = 0.0
@@ -110,7 +110,7 @@ def render(output_directory: Path) -> tuple[Path, Path]:
 
                 if not servos_disabled:
                     # Compensate the 1500 N/m passive spring at static equilibrium.
-                    data.ctrl[actuator_ids] = desired * 1.6
+                    data.ctrl[actuator_ids] = desired * 1.75
 
                 mujoco.mj_step(model, data)
                 if not np.isfinite(data.qpos).all():
@@ -168,8 +168,8 @@ def render(output_directory: Path) -> tuple[Path, Path]:
 
         labels = {
             "neutral": "NEUTRAL - 348 mm",
-            "shortened": "ACTIVE SHORTEN - 328 mm",
-            "extended": "ACTIVE EXTEND - 362 mm",
+            "shortened": "ACTIVE SHORTEN - 169 mm",
+            "extended": "ACTIVE EXTEND - 364 mm",
         }
         labelled_paths: list[Path] = []
         for state_name in ("neutral", "shortened", "extended"):

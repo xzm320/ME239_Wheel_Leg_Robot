@@ -91,13 +91,13 @@ def verify() -> dict[str, object]:
         assert maximum_obstacle_height <= spec.maximum_obstacle_height_m
 
         data = mujoco.MjData(model)
-        data.qpos[:7] = (-8.5, 0.0, 0.343, 1.0, 0.0, 0.0, 0.0)
+        data.qpos[:7] = (-8.5, 0.0, 0.408, 1.0, 0.0, 0.0, 0.0)
         max_contacts = 0
         for _ in range(round(0.4 / model.opt.timestep)):
             mujoco.mj_step(model, data)
             max_contacts = max(max_contacts, data.ncon)
         assert max_contacts > 0
-        assert data.qpos[2] > 0.3
+        assert data.qpos[2] > 0.37
         assert np.isfinite(data.qpos).all()
 
         rms_height = float(recorded_metrics["rms_height_m"])

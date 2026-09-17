@@ -97,7 +97,7 @@ def render(output_directory: Path) -> tuple[Path, Path]:
 
     model = mujoco.MjModel.from_xml_path(str(MODEL_PATH))
     data = mujoco.MjData(model)
-    data.qpos[:7] = (0.0, 0.0, 0.343, 1.0, 0.0, 0.0, 0.0)
+    data.qpos[:7] = (0.0, 0.0, 0.408, 1.0, 0.0, 0.0, 0.0)
     mujoco.mj_forward(model, data)
     wheel_ids = [
         _id(model, mujoco.mjtObj.mjOBJ_ACTUATOR, name)

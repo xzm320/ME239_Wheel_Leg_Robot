@@ -51,7 +51,7 @@ def render(output_directory: Path) -> Path:
     if shutil.which("ffmpeg") is None:
         raise RuntimeError("ffmpeg is required to compose the sleeve image")
     output_directory.mkdir(parents=True, exist_ok=True)
-    output_path = output_directory / "telescopic_sleeve_engagement_v1.png"
+    output_path = output_directory / "telescopic_sleeve_engagement_v2.png"
 
     model = mujoco.MjModel.from_xml_path(str(MODEL_PATH))
     model.opt.gravity[:] = 0.0
@@ -79,15 +79,15 @@ def render(output_directory: Path) -> Path:
 
         for step in range(round(1.0 / model.opt.timestep)):
             ramp = min(step * model.opt.timestep / 0.35, 1.0)
-            data.ctrl[actuator_ids] = 0.064 * ramp
+            data.ctrl[actuator_ids] = 0.1645 * ramp
             mujoco.mj_step(model, data)
         _render_state(model, data, camera, maximum_path)
 
         font = "/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf"
         labelled_paths: list[Path] = []
         for source, label, destination in (
-            (neutral_path, "NEUTRAL - 70 mm INSERTION", "neutral.png"),
-            (maximum_path, "MAX EXTENSION - 30 mm INSERTION", "maximum.png"),
+            (neutral_path, "NESTED TWO-STAGE - NEUTRAL", "neutral.png"),
+            (maximum_path, "188 mm EXTENSION - 26 mm MIN INSERTION", "maximum.png"),
         ):
             labelled = temporary_directory / destination
             subprocess.run(

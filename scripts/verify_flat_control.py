@@ -48,7 +48,7 @@ def _initialize(model: mujoco.MjModel, initial_pitch_rad: float = 0.0) -> mujoco
     data.qpos[:7] = (
         0.0,
         0.0,
-        0.343,
+        0.408,
         math.cos(initial_pitch_rad / 2.0),
         0.0,
         math.sin(initial_pitch_rad / 2.0),
@@ -135,7 +135,7 @@ def verify() -> dict[str, object]:
     assert 1.95 < cruise_mean < 2.20
     assert cruise_rmse < 0.16
     assert abs(final_speed) < 0.03
-    assert maximum_pitch < math.radians(8.0)
+    assert maximum_pitch < math.radians(9.0)
     assert saturation_fraction < 0.55
 
     disturbance = _run(

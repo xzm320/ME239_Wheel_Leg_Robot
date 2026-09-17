@@ -8,8 +8,11 @@ mechanism while retaining the x-z compliant hip carrier.
 - Four load-bearing links per leg, each 190 mm between pivots
 - Nominal knee-to-knee crossbar length: 150 mm
 - Nominal hip-to-wheel distance: 348 mm
-- Crossbar extension range: ±40 mm
-- Geometric hip-to-wheel range: approximately 328–364 mm
+- Two synchronized telescopic stages: -20 to +94 mm per stage
+- Total crossbar range: 110–338 mm
+- Geometric hip-to-wheel range: approximately 169–364 mm
+- Minimum-to-neutral leg-height ratio: 48.7%
+- Wheel radius/diameter: 120/240 mm
 
 The orange branch owns the wheel body. The blue branch closes onto the same
 bottom pivot through a three-dimensional `equality/connect` constraint. A
@@ -19,35 +22,34 @@ kinematics with a polynomial joint mapping.
 
 ## Active elastic crossbar
 
-Each crossbar is represented by two rigid telescopic bodies:
+Each crossbar is represented by three nested bodies. Two 1:1 synchronized
+slide stages provide the long travel without allowing a single inner rod to
+leave its sleeve:
 
 | Property | Value |
 | --- | ---: |
-| Passive stiffness | 1500 N/m |
-| Passive damping | 25 N·s/m |
-| Position-servo stiffness | 2500 N/m |
-| Position-servo damping | 45 N·s/m |
-| Actuator force limit | ±250 N |
-| Physical slide range | ±40 mm |
-| Minimum rod insertion | 30 mm |
+| Equivalent passive stiffness | 1500 N/m |
+| Equivalent passive damping | 25 N·s/m |
+| Per-stage stiffness/damping | 3000 N/m / 50 N·s/m |
+| Position-servo stiffness/damping | 8000 N/m / 100 N·s/m |
+| Actuator force limit | ±700 N |
+| Per-stage physical range | -20 to +94 mm |
+| Total active crossbar travel | 228 mm |
+| Minimum stage insertion | 26 mm |
 
-A 20 mm passive displacement produces a 30 N restoring force. The actuator
+A 20 mm total passive displacement produces a 30 N restoring force. The actuator
 can push and pull; it is not modeled as a tension-only cable.
 
-Because the passive spring also pulls toward zero, a desired physical
-extension `q_des` needs the static feed-forward command
-`ctrl = (1 + k_spring / k_servo) * q_des = 1.6 * q_des`.
-The actuator control range is therefore ±64 mm while the mechanical joint
-remains limited to ±40 mm.
+Because both synchronized stage springs load the first-stage actuator, a
+desired per-stage extension `q_des` needs the static feed-forward command
+`ctrl = (1 + 6000 / 8000) * q_des = 1.75 * q_des`.
 
 Positive crossbar extension widens the diamond and shortens the leg. Negative
 extension narrows it and lengthens the leg.
 
-The outer sleeve is 110 mm long. The visible inner rod starts 30 mm behind
-its body origin, so it overlaps the sleeve by 70 mm at neutral and 30 mm at
-maximum extension. The MuJoCo slide joint is connected for its full range
-regardless of visual geometry, while this overlap constraint also keeps the
-model mechanically realizable.
+At maximum shortening, the outer-to-middle and middle-to-inner overlaps are
+approximately 36 and 26 mm. Thus both visual geometry and equality-constrained
+physics remain engaged over the complete travel.
 
 ## Mass and scope
 
@@ -59,7 +61,9 @@ The baseline 1.7 N·m wheel velocity servos are replaced by direct-drive motor
 actuators with a symmetric ±6 N·m peak torque limit. Direct torque input is
 required by the cascaded balance controller, and the higher peak limit is an
 explicit high-speed drivetrain upgrade rather than a controller-only change.
-Continuous motor and thermal limits are not yet modeled.
+The larger wheels retain the lightweight 0.2385 kg design mass but have higher
+rotational inertia from their 120 mm radius. Continuous motor and thermal
+limits are not yet modeled.
 
 Link collision is intentionally disabled in this mechanism-validation model
 to prevent adjacent capsules at ideal pin joints from self-penetrating.

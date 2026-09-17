@@ -82,7 +82,7 @@ def render(output_directory: Path) -> Path:
             data.qpos[:7] = (
                 robot_x,
                 0.0,
-                0.343 + support_height,
+                0.408 + support_height,
                 1.0,
                 0.0,
                 0.0,
