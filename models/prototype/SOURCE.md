@@ -1,14 +1,17 @@
-# Official Upkie prototype
+# Ablation prototype
 
-This model is the stock wheeled biped from:
+This is `wide_car` with the three comparison features stripped out, so the
+two robots share trunk, track (±0.3411 m), wheels (r = 0.120 m, ±6 N·m),
+standing height (z = 0.408 m), and mass (5.877 kg):
 
-- Hardware / software: https://github.com/upkie/upkie
-- URDF / Xacro: https://github.com/upkie/upkie_description
+- hip mounts are welded to the trunk (no x–z compliant slides)
+- each leg is a serial 2-link chain (hip → knee → wheel)
+- no telescopic crossbar, no diamond four-bar, no equality constraints
 
-Pinned description commit: `94735fbe6137276a41de0ff4cc04d2e533fa9e33` (2025-11-25).
+The knee is held by a position servo at the same `kp=30` used on the
+wide_car hip; under the four-bar that hinge was passive. Ballast in the
+hip mounts replaces the mass of the deleted rear links and struts, and
+is placed low so the standing COM height stays close to `wide_car`.
 
-`robot.xml` is that URDF compiled to MJCF (floating base, official joint
-limits and motor force ranges). Serial hip → knee → wheel. No extra
-compliance, four-bar, or telescopic crossbar.
-
-Apache-2.0; see `LICENSE`.
+This is **not** the official Upkie. Licensed under Apache-2.0; see
+`LICENSE`.

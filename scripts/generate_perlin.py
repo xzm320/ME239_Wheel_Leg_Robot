@@ -181,10 +181,7 @@ def generate() -> dict[str, object]:
     prototype_scene = ROOT / "models" / "prototype" / "scene.xml"
     wide_scene = ROOT / "models" / "wide_car" / "scene.xml"
     prototype_scene.write_text(
-        scene_xml(
-            model_name="prototype_perlin",
-            extra_option='<option timestep="0.001" integrator="implicitfast"/>',
-        ),
+        scene_xml(model_name="prototype_perlin"),
         encoding="utf-8",
     )
     wide_scene.write_text(scene_xml(model_name="wide_car_perlin"), encoding="utf-8")

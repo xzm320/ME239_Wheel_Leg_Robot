@@ -1,5 +1,10 @@
 #!/usr/bin/env python3
-"""PID speed episodes for the official Upkie on the Unitree Perlin strip."""
+"""PID speed episodes for the rigid 2-link ablation prototype.
+
+Same chassis, track, wheels, standing height, and cascaded PID as
+wide_car. The only mechanical differences are welded hips, serial
+2-link legs, and no telescopic crossbar.
+"""
 
 from __future__ import annotations
 
@@ -22,11 +27,7 @@ if __package__:
         quaternion_pitch,
         quaternion_roll_yaw,
     )
-    from scripts.generate_perlin import (
-        ROOT,
-        ROUGH_START_X_M,
-        terrain_height_m,
-    )
+    from scripts.generate_perlin import ROOT, ROUGH_START_X_M, terrain_height_m
 else:
     from balance_pid import (
         BalanceGains,
@@ -38,27 +39,20 @@ else:
         quaternion_pitch,
         quaternion_roll_yaw,
     )
-    from generate_perlin import (
-        ROOT,
-        ROUGH_START_X_M,
-        terrain_height_m,
-    )
+    from generate_perlin import ROOT, ROUGH_START_X_M, terrain_height_m
 
 PROTOTYPE_SCENE = ROOT / "models" / "prototype" / "scene.xml"
 RESULTS_PATH = ROOT / "results" / "prototype_pid_perlin.json"
 LAUNCH_X_M = 3.5
-STAND_HEIGHT_M = 0.557
-WHEEL_KV = 0.05
-HIP_KNEE_KP = 55.0
-HIP_KNEE_KV = 1.8
+STAND_HEIGHT_M = 0.408
 HIP_KNEE_ACTUATORS = ("left_hip", "left_knee", "right_hip", "right_knee")
 WHEEL_ACTUATORS = ("left_wheel", "right_wheel")
-WHEEL_JOINTS = ("left_wheel", "right_wheel")
-ROLL_FAIL_DEG = 20.0
+WHEEL_JOINTS = ("left_wheel_joint", "right_wheel_joint")
+ROLL_FAIL_DEG = 18.0
 PITCH_FAIL_DEG = 32.0
 LANE_Y_M = 1.15
-COLLAPSE_Z_M = 0.26
-DEFAULT_SPEEDS_M_S = (0.00, 0.10, 0.15, 0.18, 0.20, 0.25, 0.30, 0.40, 0.50)
+COLLAPSE_Z_M = 0.16
+DEFAULT_SPEEDS_M_S = (0.00, 0.50, 1.00, 1.50, 2.00, 2.50, 3.00, 3.50, 3.70, 4.00)
 
 
 @dataclass(frozen=True)
@@ -96,26 +90,10 @@ def joint_dof(model: mujoco.MjModel, name: str) -> int:
     return int(model.jnt_dofadr[joint_id])
 
 
-def apply_prototype_pose_hold(model: mujoco.MjModel) -> None:
-    """Hold hip/knee at the URDF zero pose with qdd100-like servo stiffness.
-
-    The converted URDF ships ``kp=8``, which is too soft: the serial legs
-    fold before the wheel PID can balance. The real qdd100 position loops
-    are much stiffer; this only changes the *hold*, not the wheel PID.
-    """
-
-    for name in HIP_KNEE_ACTUATORS:
-        actuator_id = mujoco.mj_name2id(model, mujoco.mjtObj.mjOBJ_ACTUATOR, name)
-        model.actuator_gainprm[actuator_id, 0] = HIP_KNEE_KP
-        model.actuator_biasprm[actuator_id, 1] = -HIP_KNEE_KP
-        model.actuator_biasprm[actuator_id, 2] = -HIP_KNEE_KV
-
-
 def episode_duration_s(target_speed_m_s: float, launch_x_m: float = LAUNCH_X_M) -> float:
-    if target_speed_m_s < 0.02:
-        return 8.0
-    travel = max(8.0, (12.5 - launch_x_m) / max(target_speed_m_s, 0.08))
-    return float(min(50.0, 5.0 + travel))
+    if target_speed_m_s < 0.05:
+        return 6.0
+    return 12.0
 
 
 def summarize(result: PerlinSpeedResult) -> dict[str, object]:
@@ -140,19 +118,15 @@ def summarize(result: PerlinSpeedResult) -> dict[str, object]:
 
 
 def lane_held(result: PerlinSpeedResult) -> bool:
-    """Survive, stay in-lane, and (if moving) actually cruise the wrinkles."""
-
     if not result.stable:
         return False
     if abs(result.final_y_m) >= 1.2 or result.maximum_roll_deg >= 12.0:
         return False
-    if result.target_speed_m_s < 0.02:
+    if result.target_speed_m_s < 0.05:
         return result.maximum_pitch_deg < 12.0
     if not result.reached_rough:
         return False
-    # Serial Upkie cannot track tightly on wrinkles; require forward
-    # progress rather than a high-speed cruise band.
-    if result.cruise_speed_m_s < 0.50 * result.target_speed_m_s:
+    if result.cruise_speed_m_s < 0.70 * result.target_speed_m_s:
         return False
     return True
 
@@ -161,10 +135,11 @@ def run_prototype_episode(
     target_speed_m_s: float,
     *,
     duration_s: float | None = None,
-    acceleration_m_s2: float = 0.12,
+    acceleration_m_s2: float = 1.8,
     balance_gains: BalanceGains | None = None,
     heading_gains: HeadingGains | None = None,
     start_x_m: float = LAUNCH_X_M,
+    rolling_start: bool = False,
 ) -> PerlinSpeedResult:
     balance = balance_gains or prototype_balance_gains()
     heading = heading_gains or prototype_heading_gains()
@@ -172,17 +147,19 @@ def run_prototype_episode(
         target_speed_m_s, start_x_m
     )
     model = mujoco.MjModel.from_xml_path(str(PROTOTYPE_SCENE))
-    apply_prototype_pose_hold(model)
     data = mujoco.MjData(model)
     data.qpos[0] = start_x_m
     data.qpos[2] = STAND_HEIGHT_M + terrain_height_m(start_x_m, 0.0)
+    if rolling_start and target_speed_m_s > 0.05:
+        data.qvel[0] = target_speed_m_s
+        radius = 0.120
+        for name in WHEEL_JOINTS:
+            data.qvel[joint_dof(model, name)] = target_speed_m_s / radius
     mujoco.mj_forward(model, data)
 
-    hips = actuator_ids(model, HIP_KNEE_ACTUATORS)
+    pose = actuator_ids(model, HIP_KNEE_ACTUATORS)
     wheels = actuator_ids(model, WHEEL_ACTUATORS)
-    left_dof = joint_dof(model, WHEEL_JOINTS[0])
-    right_dof = joint_dof(model, WHEEL_JOINTS[1])
-    controller = BalanceSpeedController(float(model.opt.timestep), balance, initial_pitch_reference=0.02)
+    controller = BalanceSpeedController(float(model.opt.timestep), balance)
 
     speeds: list[float] = []
     rough_speeds: list[float] = []
@@ -196,11 +173,12 @@ def run_prototype_episode(
     steps = int(round(duration / float(model.opt.timestep)))
     for _ in range(steps):
         time_s = float(data.time)
-        commanded = (
-            0.0
-            if target_speed_m_s < 0.02
-            else min(target_speed_m_s, acceleration_m_s2 * max(0.0, time_s - 0.8))
-        )
+        if rolling_start:
+            commanded = target_speed_m_s
+        elif target_speed_m_s < 0.05:
+            commanded = 0.0
+        else:
+            commanded = min(target_speed_m_s, acceleration_m_s2 * max(0.0, time_s - 0.4))
         pitch = quaternion_pitch(data.qpos[3:7])
         roll, yaw = quaternion_roll_yaw(data.qpos[3:7])
         speed = float(data.qvel[0])
@@ -219,17 +197,11 @@ def run_prototype_episode(
             roll_rad=roll,
             roll_rate_rad_s=float(data.qvel[3]),
         )
-        for hip in hips:
-            data.ctrl[hip] = 0.0
-        # Official Upkie: left/right wheel axes are mirrored. Positive
-        # pitch torque on the left and negative on the right recovers a
-        # nose-down fall via chassis reaction (see open-loop sign check).
-        data.ctrl[wheels[0]] = data.qvel[left_dof] + (
-            output.wheel_torque_nm + head
-        ) / WHEEL_KV
-        data.ctrl[wheels[1]] = data.qvel[right_dof] + (
-            -output.wheel_torque_nm + head
-        ) / WHEEL_KV
+        for index in pose:
+            data.ctrl[index] = 0.0
+        # Both wheel joints spin about +Y, same mapping as wide_car.
+        data.ctrl[wheels[0]] = output.wheel_torque_nm + head
+        data.ctrl[wheels[1]] = output.wheel_torque_nm - head
         mujoco.mj_step(model, data)
 
         pitch = quaternion_pitch(data.qpos[3:7])
@@ -239,7 +211,7 @@ def run_prototype_episode(
         peak_speed = max(peak_speed, abs(speed))
         max_roll = max(max_roll, abs(roll))
         max_pitch = max(max_pitch, abs(pitch))
-        if time_s > 1.0:
+        if time_s > 0.8:
             speeds.append(speed)
         if x_m >= ROUGH_START_X_M:
             reached_rough = True
@@ -248,7 +220,7 @@ def run_prototype_episode(
             failure = "pitch exceeded 32 deg"
             break
         if abs(math.degrees(roll)) >= ROLL_FAIL_DEG:
-            failure = "roll exceeded 20 deg"
+            failure = "roll exceeded 18 deg"
             break
         if float(data.qpos[2]) < COLLAPSE_Z_M:
             failure = "base collapsed"
@@ -283,20 +255,23 @@ def sweep_prototype(
 ) -> dict[str, object]:
     rows = [run_prototype_episode(speed) for speed in speeds_m_s]
     held = [row for row in rows if row.held]
-    moving_held = [row for row in held if row.target_speed_m_s >= 0.02]
+    moving_held = [row for row in held if row.target_speed_m_s >= 0.05]
     limit = max(moving_held, key=lambda row: row.target_speed_m_s, default=None)
     payload = {
         "robot": "prototype",
-        "controller": "cascaded speed PI + pitch PD, hip/knee pose hold",
+        "version": "wide_car-ablation-rigid-2link",
+        "controller": (
+            "cascaded speed PI + pitch PD on the wheels; hip and knee "
+            "position servos hold 0; no slides, no four-bar, no strut"
+        ),
         "terrain": "Unitree AddPerlinHeighField, 48 m x 4 m, relief 0.20 m",
         "gains": asdict(prototype_balance_gains()),
         "heading_gains": asdict(prototype_heading_gains()),
-        "pose_hold": {"hip_knee_kp": HIP_KNEE_KP, "hip_knee_kv": HIP_KNEE_KV},
         "launch_x_m": LAUNCH_X_M,
         "rough_start_x_m": ROUGH_START_X_M,
         "held_criterion": (
             "survive; |y|<1.2 m; roll<12 deg; if moving: reach x>=10 m "
-            "and cruise >= 50% of target on the wrinkles"
+            "and cruise >= 70% of target on the wrinkles"
         ),
         "episodes": [summarize(row) for row in rows],
         "max_held_speed_m_s": None if limit is None else limit.target_speed_m_s,

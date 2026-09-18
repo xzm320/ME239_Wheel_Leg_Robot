@@ -33,8 +33,6 @@ if __package__:
         STAND_HEIGHT_M,
         WHEEL_ACTUATORS,
         WHEEL_JOINTS,
-        WHEEL_KV,
-        apply_prototype_pose_hold,
         actuator_ids,
         joint_dof,
     )
@@ -57,8 +55,6 @@ else:
         STAND_HEIGHT_M,
         WHEEL_ACTUATORS,
         WHEEL_JOINTS,
-        WHEEL_KV,
-        apply_prototype_pose_hold,
         actuator_ids,
         joint_dof,
     )
@@ -150,23 +146,26 @@ def render_prototype_clip(
     start_x_m: float,
     title: str,
     stem: str,
-    acceleration_m_s2: float = 0.28,
+    acceleration_m_s2: float = 1.8,
+    rolling_start: bool = False,
 ) -> Path:
     model = mujoco.MjModel.from_xml_path(str(PROTOTYPE_SCENE))
-    apply_prototype_pose_hold(model)
     data = mujoco.MjData(model)
     data.qpos[0] = start_x_m
     data.qpos[2] = STAND_HEIGHT_M + terrain_height_m(start_x_m, 0.0)
+    if rolling_start:
+        data.qvel[0] = target_speed_m_s
+        radius = 0.120
+        for name in WHEEL_JOINTS:
+            data.qvel[joint_dof(model, name)] = target_speed_m_s / radius
     mujoco.mj_forward(model, data)
-    hips = actuator_ids(model, HIP_KNEE_ACTUATORS)
+    pose = actuator_ids(model, HIP_KNEE_ACTUATORS)
     wheels = actuator_ids(model, WHEEL_ACTUATORS)
-    left_dof = joint_dof(model, WHEEL_JOINTS[0])
-    right_dof = joint_dof(model, WHEEL_JOINTS[1])
     controller = BalanceSpeedController(
-        float(model.opt.timestep), prototype_balance_gains(), initial_pitch_reference=0.02
+        float(model.opt.timestep), prototype_balance_gains()
     )
     heading = prototype_heading_gains()
-    camera, scene_option = setup_camera(model, 2.4)
+    camera, scene_option = setup_camera(model, 4.2)
     video_path = MEDIA / f"{stem}.mp4"
     still_path = MEDIA / f"{stem}.png"
 
@@ -180,14 +179,15 @@ def render_prototype_clip(
             steps = int(round(duration_s / float(model.opt.timestep)))
             for _ in range(steps):
                 time_s = float(data.time)
-                commanded = (
-                    0.0
-                    if target_speed_m_s < 0.02
-                    else min(
+                if rolling_start:
+                    commanded = target_speed_m_s
+                elif target_speed_m_s < 0.05:
+                    commanded = 0.0
+                else:
+                    commanded = min(
                         target_speed_m_s,
-                        acceleration_m_s2 * max(0.0, time_s - 0.8),
+                        acceleration_m_s2 * max(0.0, time_s - 0.4),
                     )
-                )
                 pitch = quaternion_pitch(data.qpos[3:7])
                 roll, yaw = quaternion_roll_yaw(data.qpos[3:7])
                 output = controller.update(
@@ -205,21 +205,17 @@ def render_prototype_clip(
                     roll_rad=roll,
                     roll_rate_rad_s=float(data.qvel[3]),
                 )
-                for hip in hips:
-                    data.ctrl[hip] = 0.0
-                data.ctrl[wheels[0]] = data.qvel[left_dof] + (
-                    output.wheel_torque_nm + head
-                ) / WHEEL_KV
-                data.ctrl[wheels[1]] = data.qvel[right_dof] + (
-                    -output.wheel_torque_nm + head
-                ) / WHEEL_KV
+                for index in pose:
+                    data.ctrl[index] = 0.0
+                data.ctrl[wheels[0]] = output.wheel_torque_nm + head
+                data.ctrl[wheels[1]] = output.wheel_torque_nm - head
                 mujoco.mj_step(model, data)
                 if float(data.time) + 1e-9 < next_frame_time:
                     continue
                 pitch = quaternion_pitch(data.qpos[3:7])
                 roll, _ = quaternion_roll_yaw(data.qpos[3:7])
                 camera.lookat[:] = (
-                    float(data.qpos[0]) + 0.25,
+                    float(data.qpos[0]) + 0.35,
                     float(data.qpos[1]),
                     0.08 + terrain_height_m(float(data.qpos[0]), 0.0),
                 )
@@ -348,26 +344,26 @@ def render_prototype_set() -> list[Path]:
     clips = [
         dict(
             target_speed_m_s=0.0,
-            duration_s=6.0,
+            duration_s=5.0,
             start_x_m=3.5,
-            title="PROTOTYPE  PID  STAND  0 m/s",
+            title="PROTOTYPE  RIGID 2-LINK  PID  STAND",
             stem="prototype_pid_stand",
         ),
         dict(
-            target_speed_m_s=0.15,
-            duration_s=18.0,
-            start_x_m=8.5,
-            title="PROTOTYPE  PID  PERLIN  0.15 m/s  LIMIT",
-            stem="prototype_pid_0p15ms",
-            acceleration_m_s2=0.12,
+            target_speed_m_s=1.00,
+            duration_s=10.0,
+            start_x_m=6.0,
+            title="PROTOTYPE  RIGID 2-LINK  PID  1.0 m/s",
+            stem="prototype_pid_1p0ms",
+            acceleration_m_s2=1.8,
         ),
         dict(
-            target_speed_m_s=0.40,
+            target_speed_m_s=3.70,
             duration_s=8.0,
-            start_x_m=8.0,
-            title="PROTOTYPE  PID  PERLIN  0.40 m/s  FAIL",
-            stem="prototype_pid_0p40ms_fail",
-            acceleration_m_s2=0.12,
+            start_x_m=6.0,
+            title="PROTOTYPE  RIGID 2-LINK  PID  3.7 m/s",
+            stem="prototype_pid_3p7ms",
+            acceleration_m_s2=1.8,
         ),
     ]
     return [render_prototype_clip(**clip) for clip in clips]

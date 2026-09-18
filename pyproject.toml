@@ -1,7 +1,7 @@
 [project]
 name = "high-speed-wheel-legged-robot"
 version = "0.1.0"
-description = "MuJoCo models for comparing a stock Upkie with a 3x-track compliant four-bar machine on Perlin terrain"
+description = "MuJoCo ablation: rigid 2-link vs compliant 4-bar 3x-track wheel-legged machines on Perlin terrain"
 readme = "README.md"
 requires-python = ">=3.12,<3.13"
 dependencies = [

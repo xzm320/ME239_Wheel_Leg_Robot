@@ -1,118 +1,108 @@
 <!--
-Official Upkie wheeled biped, compiled from
-https://github.com/upkie/upkie_description (URDF) for MuJoCo.
+Ablation prototype of the 3x-track machine.
 
-Source robot: https://github.com/upkie/upkie
-Description commit: 94735fbe6137276a41de0ff4cc04d2e533fa9e33
-License: Apache-2.0
+Same trunk, hip spacing (±0.3411 m), wheels, and standing height as
+wide_car. The three comparison features are removed:
 
-Serial hip / knee / wheel legs. No compliant hip, no four-bar, no
-telescopic crossbar. Collision geometry follows the official URDF
-primitives (qdd100 ±16 N·m, mj5208 wheels ±1.7 N·m).
+- no x–z compliant hip slides (hip mounts are welded to the trunk)
+- serial 2-link legs instead of a diamond four-bar
+- no telescopic crossbar
+
+Ballast in each hip mount replaces the mass of the deleted rear links
+and struts so total mass matches wide_car (5.877 kg). Licensed under
+Apache-2.0.
 -->
-<mujoco model="upkie_prototype">
+<mujoco model="prototype">
   <compiler angle="radian" autolimits="true"/>
-  <option timestep="0.001" integrator="implicitfast" noslip_iterations="4"/>
+  <option timestep="0.001" integrator="implicitfast" iterations="60"
+          ls_iterations="20" noslip_iterations="4"/>
 
   <default>
-    <geom friction="0.9 0.01 0.001"/>
+    <joint armature="0.005" damping="0.15"/>
+    <geom friction="0.8 0.01 0.001" solref="0.004 1"/>
+    <default class="link">
+      <geom type="capsule" size="0.012" contype="0" conaffinity="0"
+            rgba="0.82 0.84 0.88 1"/>
+    </default>
+    <default class="wheel">
+      <geom type="cylinder" size="0.120 0.032" friction="1.1 0.02 0.001"
+            rgba="0.12 0.13 0.15 1"/>
+    </default>
   </default>
 
   <worldbody>
-    <body name="base" pos="0 0 0.56">
-      <inertial pos="-0.0114511 0 -0.118768" quat="0.70649 0.70649 -0.0295303 0.0295303"
-                mass="2.7945" diaginertia="0.0232674 0.0160455 0.0131749"/>
-      <freejoint name="root"/>
-      <site name="imu" pos="0 0 -0.1" size="0.006"/>
-      <geom name="torso" size="0.0625 0.085 0.125" pos="0 0 -0.1" type="box"
-            rgba="0.93 0.64 0.52 0.8"/>
-      <geom name="battery" size="0.065 0.037 0.0275" pos="-0.04 0 -0.1"
-            quat="0.5 0.5 0.5 0.5" type="box" rgba="0.3 0.3 0.3 1"/>
-      <geom name="handle" size="0.06 0.035 0.02" pos="0 0 0.045"
-            quat="0.707107 0 0 -0.707107" type="box" rgba="0.93 0.64 0.52 1"/>
-      <geom size="0.05 0.015" pos="0 0.1 -0.164" quat="0.707107 -0.707107 0 0"
-            type="cylinder" rgba="0.1 0.1 0.1 1"/>
-      <geom size="0.05 0.015" pos="0 -0.1 -0.164" quat="0 0 0.707107 -0.707107"
-            type="cylinder" rgba="0.1 0.1 0.1 1"/>
+    <body name="trunk" pos="0 0 0.408">
+      <freejoint name="trunk_freejoint"/>
+      <inertial pos="0.00014 0.00000 0.07200" mass="2.90"
+                fullinertia="0.055 0.016 0.052 0 0 0"/>
+      <geom name="trunk_collision" type="box" pos="0 0 0.086"
+            size="0.095 0.328 0.048" rgba="0.34 0.28 0.60 1"/>
+      <geom name="trunk_pod" type="box" pos="0 0 0.148"
+            size="0.072 0.126 0.048" rgba="0.40 0.32 0.68 1"
+            contype="0" conaffinity="0"/>
+      <geom name="left_sponson" type="box" pos="0 0.278 0.076"
+            size="0.070 0.054 0.030" rgba="0.30 0.24 0.52 1"
+            contype="0" conaffinity="0"/>
+      <geom name="right_sponson" type="box" pos="0 -0.278 0.076"
+            size="0.070 0.054 0.030" rgba="0.30 0.24 0.52 1"
+            contype="0" conaffinity="0"/>
+      <geom name="axle_beam" type="capsule" fromto="0 0.336 0.050 0 -0.336 0.050"
+            size="0.016" rgba="0.22 0.20 0.38 1"
+            contype="0" conaffinity="0"/>
+      <site name="imu" pos="-0.04095 0.04000 0.155" size="0.006"/>
 
-      <body name="left_hip_qdd100_rotor" pos="0 0.1142 -0.164"
-            quat="0.707107 -0.707107 0 0">
-        <inertial pos="0 0.143655 0.0648064" quat="0.406367 0.578676 -0.578676 0.406367"
-                  mass="0.69241" diaginertia="0.00300898 0.00296411 0.000690516"/>
-        <joint name="left_hip" range="-1.26 1.26" actuatorfrcrange="-16 16" axis="0 0 -1"/>
-        <geom size="0.023 0.0025" pos="0 0 -0.0025" type="cylinder" rgba="0.1 0.1 0.1 1"/>
-        <geom size="0.025 0.045" pos="0 0 0.025" quat="0.5 -0.5 0.5 0.5"
-              type="cylinder" rgba="0.1 0.1 0.1 1"/>
-        <geom size="0.012 0.13" pos="0 0.07 0.025" quat="0.707107 0.707107 0 0"
-              type="cylinder" rgba="1 0.77 0.48 1"/>
-        <geom size="0.05 0.03" pos="0 0.168 0.037" quat="0 0.707107 0.707107 0"
-              type="cylinder" rgba="0.93 0.64 0.52 1"/>
-        <geom size="0.05 0.015" pos="0 0.168 0.082" type="cylinder" rgba="0.1 0.1 0.1 1"/>
-        <body name="left_knee_qdd100_rotor" pos="0 0.168 0.0962">
-          <inertial pos="0 0.129919 0.000191464" quat="0.775462 0.631394 0 0"
-                    mass="0.3954" diaginertia="0.0022225 0.0021727 0.000289631"/>
-          <joint name="left_knee" range="-2.51 2.51" actuatorfrcrange="-16 16" axis="0 0 -1"/>
-          <geom size="0.023 0.0025" pos="0 0 -0.0025" type="cylinder" rgba="0.1 0.1 0.1 1"/>
-          <geom size="0.025 0.045" pos="0 0 0.025" quat="0.5 -0.5 0.5 0.5"
-                type="cylinder" rgba="0.93 0.64 0.52 1"/>
-          <geom size="0.012 0.13" pos="0 0.07 0.025" quat="0 0 0.707107 -0.707107"
-                type="cylinder" rgba="1 0.77 0.48 1"/>
-          <geom size="0.046 0.034 0.028" pos="0 0.173 0.0185" quat="0 0 0 -1"
-                type="box" rgba="0.65 0.76 0.91 1"/>
-          <geom size="0.045 0.023 0.002" pos="0 0.175 -0.0105" quat="0 0 0 -1"
-                type="box" rgba="0.8 0.8 0.8 1"/>
-          <geom size="0.03 0.009" pos="0 0.175 -0.022" quat="0 0 -1 0"
-                type="cylinder" rgba="0.22 0.22 0.25 1"/>
-          <body name="left_ankle_mj5208_rotor" pos="0 0.175 -0.012" quat="0 0 -1 0">
-            <inertial pos="0 0.000254674 0.0355348"
-                      quat="0.497084 0.502899 -0.502899 0.497084"
-                      mass="0.18455" diaginertia="0.000174567 0.000134472 0.000132269"/>
-            <joint name="left_wheel" actuatorfrcrange="-1.7 1.7" axis="0 0 -1"/>
-            <geom size="0.034 0.008" pos="0 0 0.015" type="cylinder" rgba="0.5 0.55 0.6 1"/>
-            <geom size="0.039 0.0125" pos="0 0 0.0376" type="cylinder" rgba="0.93 0.64 0.52 1"/>
-            <geom name="left_wheel_tire" size="0.05 0.02" pos="0 0 0.046" type="cylinder"
-                  rgba="0.3 0.3 0.3 1" friction="1.1 0.02 0.002"/>
+      <!-- Left hip mount: rigid, no x–z slides. -->
+      <body name="left_hip_mount" pos="0 0.3411 0.0602">
+        <inertial pos="0 0 -0.16" mass="0.80"
+                  diaginertia="0.0012 0.0012 0.0012"/>
+        <geom type="box" size="0.027 0.014 0.027" density="0"
+              contype="0" conaffinity="0" rgba="0.10 0.65 0.95 1"/>
+        <site name="left_hip_origin" size="0.008" rgba="0.10 0.65 0.95 1"/>
+
+        <body name="left_upper">
+          <joint name="left_hip" type="hinge" axis="0 1 0" range="-0.65 0.65"/>
+          <geom class="link" fromto="0 0 0 0.075 0 -0.174" mass="0.24"
+                rgba="0.95 0.55 0.12 1"/>
+          <site name="left_knee" pos="0.075 0 -0.174" size="0.009"
+                rgba="0.95 0.55 0.12 1"/>
+
+          <body name="left_lower" pos="0.075 0 -0.174">
+            <joint name="left_knee" type="hinge" axis="0 1 0" range="-1.20 1.20"/>
+            <geom class="link" fromto="0 0 0 -0.075 0 -0.174" mass="0.21"
+                  rgba="0.95 0.55 0.12 1"/>
+            <body name="left_wheel" pos="-0.075 0 -0.174">
+              <joint name="left_wheel_joint" type="hinge" axis="0 1 0"
+                     damping="0.005"/>
+              <geom class="wheel" quat="0.7071068 0.7071068 0 0" mass="0.2385"/>
+            </body>
           </body>
         </body>
       </body>
 
-      <body name="right_hip_qdd100_rotor" pos="0 -0.1142 -0.164"
-            quat="0 0 0.707107 -0.707107">
-        <inertial pos="0 0.143655 0.0648064" quat="0.406367 0.578676 -0.578676 0.406367"
-                  mass="0.69241" diaginertia="0.00300898 0.00296411 0.000690516"/>
-        <joint name="right_hip" range="-1.26 1.26" actuatorfrcrange="-16 16" axis="0 0 -1"/>
-        <geom size="0.023 0.0025" pos="0 0 -0.0025" type="cylinder" rgba="0.1 0.1 0.1 1"/>
-        <geom size="0.025 0.045" pos="0 0 0.025" quat="0.5 -0.5 0.5 0.5"
-              type="cylinder" rgba="0.1 0.1 0.1 1"/>
-        <geom size="0.012 0.13" pos="0 0.07 0.025" quat="0.707107 0.707107 0 0"
-              type="cylinder" rgba="1 0.77 0.48 1"/>
-        <geom size="0.05 0.03" pos="0 0.168 0.037" quat="0 0.707107 0.707107 0"
-              type="cylinder" rgba="0.93 0.64 0.52 1"/>
-        <geom size="0.05 0.015" pos="0 0.168 0.082" type="cylinder" rgba="0.1 0.1 0.1 1"/>
-        <body name="right_knee_qdd100_rotor" pos="0 0.168 0.0962">
-          <inertial pos="0 0.129919 0.000196523" quat="0.775423 0.631442 0 0"
-                    mass="0.3954" diaginertia="0.00222226 0.00217261 0.000289475"/>
-          <joint name="right_knee" range="-2.51 2.51" actuatorfrcrange="-16 16" axis="0 0 -1"/>
-          <geom size="0.023 0.0025" pos="0 0 -0.0025" type="cylinder" rgba="0.1 0.1 0.1 1"/>
-          <geom size="0.025 0.045" pos="0 0 0.025" quat="0.5 -0.5 0.5 0.5"
-                type="cylinder" rgba="0.93 0.64 0.52 1"/>
-          <geom size="0.012 0.13" pos="0 0.07 0.025" quat="0 0 0.707107 -0.707107"
-                type="cylinder" rgba="1 0.77 0.48 1"/>
-          <geom size="0.046 0.034 0.028" pos="0 0.173 0.0185" quat="0 0 0 -1"
-                type="box" rgba="0.65 0.76 0.91 1"/>
-          <geom size="0.045 0.023 0.002" pos="0 0.175 -0.0105" quat="0 0 0 -1"
-                type="box" rgba="0.8 0.8 0.8 1"/>
-          <geom size="0.03 0.009" pos="0 0.175 -0.022" quat="0 0 -1 0"
-                type="cylinder" rgba="0.22 0.22 0.25 1"/>
-          <body name="right_ankle_mj5208_rotor" pos="0 0.175 -0.012" quat="0 0 -1 0">
-            <inertial pos="0 0.000254674 0.0355348"
-                      quat="0.497084 0.502899 -0.502899 0.497084"
-                      mass="0.18455" diaginertia="0.000174567 0.000134472 0.000132269"/>
-            <joint name="right_wheel" actuatorfrcrange="-1.7 1.7" axis="0 0 -1"/>
-            <geom size="0.034 0.008" pos="0 0 0.015" type="cylinder" rgba="0.5 0.55 0.6 1"/>
-            <geom size="0.039 0.0125" pos="0 0 0.0376" type="cylinder" rgba="0.93 0.64 0.52 1"/>
-            <geom name="right_wheel_tire" size="0.05 0.02" pos="0 0 0.046" type="cylinder"
-                  rgba="0.3 0.3 0.3 1" friction="1.1 0.02 0.002"/>
+      <!-- Right hip mount: rigid, no x–z slides. -->
+      <body name="right_hip_mount" pos="0 -0.3411 0.0602">
+        <inertial pos="0 0 -0.16" mass="0.80"
+                  diaginertia="0.0012 0.0012 0.0012"/>
+        <geom type="box" size="0.027 0.014 0.027" density="0"
+              contype="0" conaffinity="0" rgba="0.10 0.65 0.95 1"/>
+        <site name="right_hip_origin" size="0.008" rgba="0.10 0.65 0.95 1"/>
+
+        <body name="right_upper">
+          <joint name="right_hip" type="hinge" axis="0 1 0" range="-0.65 0.65"/>
+          <geom class="link" fromto="0 0 0 0.075 0 -0.174" mass="0.24"
+                rgba="0.95 0.55 0.12 1"/>
+          <site name="right_knee" pos="0.075 0 -0.174" size="0.009"
+                rgba="0.95 0.55 0.12 1"/>
+
+          <body name="right_lower" pos="0.075 0 -0.174">
+            <joint name="right_knee" type="hinge" axis="0 1 0" range="-1.20 1.20"/>
+            <geom class="link" fromto="0 0 0 -0.075 0 -0.174" mass="0.21"
+                  rgba="0.95 0.55 0.12 1"/>
+            <body name="right_wheel" pos="-0.075 0 -0.174">
+              <joint name="right_wheel_joint" type="hinge" axis="0 1 0"
+                     damping="0.005"/>
+              <geom class="wheel" quat="0.7071068 0.7071068 0 0" mass="0.2385"/>
+            </body>
           </body>
         </body>
       </body>
@@ -120,12 +110,18 @@ primitives (qdd100 ±16 N·m, mj5208 wheels ±1.7 N·m).
   </worldbody>
 
   <actuator>
-    <position name="left_hip" joint="left_hip" kp="8" kv="0.1" forcerange="-16 16"/>
-    <position name="left_knee" joint="left_knee" kp="8" kv="0.1" forcerange="-16 16"/>
-    <velocity name="left_wheel" joint="left_wheel" kv="0.05" forcerange="-1.7 1.7"/>
-    <position name="right_hip" joint="right_hip" kp="8" kv="0.1" forcerange="-16 16"/>
-    <position name="right_knee" joint="right_knee" kp="8" kv="0.1" forcerange="-16 16"/>
-    <velocity name="right_wheel" joint="right_wheel" kv="0.05" forcerange="-1.7 1.7"/>
+    <position name="left_hip" joint="left_hip" kp="30" kv="1.5"
+              ctrlrange="-0.65 0.65" forcerange="-16 16"/>
+    <position name="left_knee" joint="left_knee" kp="30" kv="1.5"
+              ctrlrange="-1.20 1.20" forcerange="-16 16"/>
+    <motor name="left_wheel" joint="left_wheel_joint"
+           ctrlrange="-6 6" forcerange="-6 6"/>
+    <position name="right_hip" joint="right_hip" kp="30" kv="1.5"
+              ctrlrange="-0.65 0.65" forcerange="-16 16"/>
+    <position name="right_knee" joint="right_knee" kp="30" kv="1.5"
+              ctrlrange="-1.20 1.20" forcerange="-16 16"/>
+    <motor name="right_wheel" joint="right_wheel_joint"
+           ctrlrange="-6 6" forcerange="-6 6"/>
   </actuator>
 
   <sensor>
