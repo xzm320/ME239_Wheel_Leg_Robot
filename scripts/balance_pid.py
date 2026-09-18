@@ -74,7 +74,7 @@ def wide_car_balance_gains() -> BalanceGains:
         speed_ki=0.004,
         pitch_reference_limit_rad=0.12,
         pitch_reference_rate_rad_s=0.28,
-        wheel_torque_limit_nm=6.0,
+        wheel_torque_limit_nm=18.0,
     )
 
 

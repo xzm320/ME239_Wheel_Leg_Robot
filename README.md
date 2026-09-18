@@ -9,22 +9,22 @@
 1. **机械**：关节柔性不够，扰动不能被被动吸收，机构本身有缺陷。
 2. **控制**：即使用了更柔的腿，高速下控制器也来不及把正压力补回去。
 
-为了控制变量，两台机器共用底盘、轮距、车轮和站立高度，只改三条机构。
+为了控制变量，两台机器共用底盘包、轮距、10 寸轮毂和站立高度，只改三条机构。质量按目录件计算，**不做配平**。完整表见 `models/PHYSICS.md`。
 
 ## 保留的模型
 
-- **原型机** `models/prototype/`：`wide_car` 的削减版。髋座焊死（无 x–z 滑移）、每条腿是串髋–串膝两连杆、没有伸缩横杆。质量、轮距、轮半径和站立高度与三倍机相同。
-- **三倍轮距机** `models/wide_car/`：被动柔性髋关节（x–z 滑移）、菱形四连杆、两级套筒伸缩杆。轮距 ±341 mm。
+- **原型机** `models/prototype/`：`wide_car` 的削减版。髋座焊死、串髋串膝两连杆、没有伸缩杆。2 连杆的膝必须有电机，所以各加一颗 qdd100。
+- **三倍轮距机** `models/wide_car/`：髋 x–z 电机导轨、菱形四连杆、两级 500 N 伸缩杆。轮距 ±341 mm。
 
 | | 原型机 | wide_car |
 | --- | --- | --- |
-| 质量 | 5.877 kg | 5.877 kg |
+| **总质量** | **13.168 kg** | **19.374 kg** |
 | 髋距 | ±0.3411 m | ±0.3411 m |
-| 轮半径 / 轮矩 | 0.120 m / ±6 N·m | 0.120 m / ±6 N·m |
+| 轮 | 10 寸轮毂 3.00 kg，±20 N·m | 相同 |
 | 站立高度 | 0.408 m | 0.408 m |
-| 髋座 | 焊死 | x–z 滑移弹簧 |
-| 腿 | 2 连杆（髋、膝伺服钉在 0） | 菱形四连杆 |
-| 横杆 | 无 | 两级伸缩，伺服关闭，只留弹簧 |
+| 髋座 | 焊死支架 0.15 kg ×2 | MGN12+NEMA17 模组 1.80 kg ×2 |
+| 腿 | 2 连杆 + 膝 qdd100 | 菱形四连杆（膝被动） |
+| 横杆 | 无 | 500 N 推杆 1.60 kg ×2 |
 
 地形只保留一种：[Unitree `AddPerlinHeighField`](https://github.com/unitreerobotics/unitree_mujoco) 同款 Perlin 高度场。48 m × 4 m，基波长 1.5625 m，6 层，起伏 0.20 m。前 6 m 平地，6–10 m 过渡，之后全幅皱面。
 
@@ -34,7 +34,7 @@
 
 ## 原型机 PID（刚性 2 连杆削减）
 
-同一套 PID、同一底盘。从 x = 3.5 m 平直段起步。上限取**从 0 起连续稳住的最高速度**；更高速度上有些目标会因 bump 相位偶发跑完，不计入上限。
+下面速度表是在旧的 5.877 kg 玩具质量下测的，**目录件质量改完后尚未重扫**。几何和控制器还在，数字作废。
 
 | 目标 (m/s) | 目标 (km/h) | 结果 | 皱面均速 (km/h) | 说明 |
 | --- | --- | --- | --- | --- |
@@ -57,6 +57,8 @@
 
 ## 第 1 版：wide_car 仅 PID、被动吸扰（本分支）
 
+同样，下表是 5.877 kg 玩具质量下的结果，目录件质量改完后需要重扫。
+
 | 目标 (m/s) | 目标 (km/h) | 结果 | 皱面均速 (km/h) | 说明 |
 | --- | --- | --- | --- | --- |
 | 0.00 | 0.00 | 站稳（有前爬） | — | 平直段能站住 |
@@ -73,6 +75,7 @@
 
 ```bash
 uv sync --frozen
+uv run python scripts/mass_budget.py
 uv run python scripts/generate_perlin.py
 uv run python scripts/prototype_perlin.py
 uv run python scripts/wide_car_perlin.py
@@ -100,22 +103,22 @@ Two causes need to be tested separately:
 1. **Mechanics**: the joints are not compliant enough to absorb the disturbance passively; the mechanism itself is the defect.
 2. **Control**: even with a more compliant leg, the controller cannot restore normal force in time at high speed.
 
-The two robots share chassis, track, wheels, and standing height. Only three mechanical features differ.
+The two robots share the chassis pack, track, 10-inch hub motors, and standing height. Only three mechanical features differ. Masses are catalog parts; **they are not ballasted to match**. Full bill of materials: `models/PHYSICS.md`.
 
 ## Models kept
 
-- **Prototype** `models/prototype/`: an ablation of `wide_car`. Hip mounts are welded (no x–z slides), each leg is a serial 2-link chain, and there is no telescopic crossbar. Mass, track, wheel radius, and stand height match the 3×-track machine.
-- **3×-track machine** `models/wide_car/`: passive compliant hips (x–z sliders), diamond four-bar legs, two-stage telescopic crossbars. Track ±341 mm.
+- **Prototype** `models/prototype/`: an ablation of `wide_car`. Hip mounts are welded, each leg is a serial 2-link chain, and there is no telescopic actuator. A serial knee needs a qdd100, so those two motors are added.
+- **3×-track machine** `models/wide_car/`: x–z motorized hip stages, diamond four-bar legs, two-stage 500 N telescopic actuators. Track ±341 mm.
 
 | | Prototype | wide_car |
 | --- | --- | --- |
-| Mass | 5.877 kg | 5.877 kg |
+| **Mass** | **13.168 kg** | **19.374 kg** |
 | Hip spacing | ±0.3411 m | ±0.3411 m |
-| Wheel radius / torque | 0.120 m / ±6 N·m | 0.120 m / ±6 N·m |
+| Wheel | 10-inch hub 3.00 kg, ±20 N·m | same |
 | Stand height | 0.408 m | 0.408 m |
-| Hip mount | welded | x–z spring slides |
-| Leg | 2-link (hip/knee held at 0) | diamond four-bar |
-| Crossbar | none | two-stage telescopic, servos off |
+| Hip mount | welded bracket 0.15 kg ×2 | MGN12+NEMA17 stage 1.80 kg ×2 |
+| Leg | 2-link + knee qdd100 | diamond four-bar (passive knee) |
+| Crossbar | none | 500 N actuator 1.60 kg ×2 |
 
 Terrain is a single type: the Unitree [`AddPerlinHeighField`](https://github.com/unitreerobotics/unitree_mujoco) Perlin heightfield. 48 m × 4 m, 1.5625 m base wavelength, 6 octaves, 0.20 m relief. Flat for the first 6 m, blended from 6–10 m, full wrinkles after that.
 
@@ -125,7 +128,7 @@ A moving run is held if it stays up, |y| < 1.2 m, roll < 12°, reaches x ≥ 10 
 
 ## Prototype PID (rigid 2-link ablation)
 
-Same PID, same chassis. Episodes launch at x = 3.5 m. The reported limit is the **highest speed that holds from a contiguous sweep starting at 0**. Faster targets sometimes finish when they hit a lucky bump phase; those are not the limit.
+The speed table below was measured at the old 5.877 kg placeholder mass. **It is stale after the catalog-mass update.**
 
 | Target (m/s) | Target (km/h) | Outcome | Rough cruise (km/h) | Notes |
 | --- | --- | --- | --- | --- |
@@ -148,6 +151,8 @@ Same PID, same chassis. Episodes launch at x = 3.5 m. The reported limit is the 
 
 ## Version 1: wide_car PID only, passive absorption (this branch)
 
+Same caveat: this table is from the 5.877 kg placeholder mass.
+
 | Target (m/s) | Target (km/h) | Outcome | Rough cruise (km/h) | Notes |
 | --- | --- | --- | --- | --- |
 | 0.00 | 0.00 | stands (creeps forward) | — | flat-strip balance |
@@ -164,6 +169,7 @@ Same PID, same chassis. Episodes launch at x = 3.5 m. The reported limit is the 
 
 ```bash
 uv sync --frozen
+uv run python scripts/mass_budget.py
 uv run python scripts/generate_perlin.py
 uv run python scripts/prototype_perlin.py
 uv run python scripts/wide_car_perlin.py

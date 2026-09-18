@@ -15,7 +15,8 @@ import numpy as np
 ROOT = Path(__file__).resolve().parents[1]
 PROTOTYPE_SCENE = ROOT / "models" / "prototype" / "scene.xml"
 WIDE_SCENE = ROOT / "models" / "wide_car" / "scene.xml"
-SHARED_MASS_KG = 5.877
+PROTOTYPE_MASS_KG = 13.168
+WIDE_CAR_MASS_KG = 19.374
 SHARED_HIP_Y_M = 0.3411
 SHARED_STAND_Z_M = 0.408
 
@@ -63,8 +64,9 @@ def verify() -> dict[str, object]:
     assert (prototype.nq, prototype.nv, prototype.nu) == (13, 12, 6)
     assert prototype.nhfield == 1
     assert prototype.neq == 0
-    assert math_isclose_mass(prototype_mass, SHARED_MASS_KG)
-    assert math_isclose_mass(wide_mass, SHARED_MASS_KG)
+    assert math_isclose_mass(prototype_mass, PROTOTYPE_MASS_KG)
+    assert math_isclose_mass(wide_mass, WIDE_CAR_MASS_KG)
+    assert wide_mass - prototype_mass > 5.0
     assert abs(prototype_hip_y - SHARED_HIP_Y_M) < 1e-6
     assert abs(wide_hip_y - SHARED_HIP_Y_M) < 1e-6
     assert abs(float(prototype_data.qpos[2]) - SHARED_STAND_Z_M) < 1e-6

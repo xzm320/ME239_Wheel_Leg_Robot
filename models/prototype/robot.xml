@@ -1,16 +1,10 @@
 <!--
 Ablation prototype of the 3x-track machine.
 
-Same trunk, hip spacing (±0.3411 m), wheels, and standing height as
-wide_car. The three comparison features are removed:
-
-- no x–z compliant hip slides (hip mounts are welded to the trunk)
-- serial 2-link legs instead of a diamond four-bar
-- no telescopic crossbar
-
-Ballast in each hip mount replaces the mass of the deleted rear links
-and struts so total mass matches wide_car (5.877 kg). Licensed under
-Apache-2.0.
+Same chassis pack, hip spacing, and 10-inch hub motors as wide_car.
+Removed: x-z motorized hip stages, rear four-bar links, telescopic
+actuators. Added: a qdd100 at each knee (serial 2-link needs it).
+No ballast. Masses in models/PHYSICS.md. Licensed under Apache-2.0.
 -->
 <mujoco model="prototype">
   <compiler angle="radian" autolimits="true"/>
@@ -18,11 +12,15 @@ Apache-2.0.
           ls_iterations="20" noslip_iterations="4"/>
 
   <default>
-    <joint armature="0.005" damping="0.15"/>
+    <joint armature="0.002" damping="0.15"/>
     <geom friction="0.8 0.01 0.001" solref="0.004 1"/>
     <default class="link">
       <geom type="capsule" size="0.012" contype="0" conaffinity="0"
             rgba="0.82 0.84 0.88 1"/>
+    </default>
+    <default class="servo">
+      <geom type="cylinder" size="0.050 0.022" contype="0" conaffinity="0"
+            quat="0.7071068 0.7071068 0 0" rgba="0.18 0.18 0.20 1"/>
     </default>
     <default class="wheel">
       <geom type="cylinder" size="0.120 0.032" friction="1.1 0.02 0.001"
@@ -33,8 +31,8 @@ Apache-2.0.
   <worldbody>
     <body name="trunk" pos="0 0 0.408">
       <freejoint name="trunk_freejoint"/>
-      <inertial pos="0.00014 0.00000 0.07200" mass="2.90"
-                fullinertia="0.055 0.016 0.052 0 0 0"/>
+      <inertial pos="0.00014 0.00000 0.07200" mass="4.20"
+                fullinertia="0.154 0.016 0.163 0 0 0"/>
       <geom name="trunk_collision" type="box" pos="0 0 0.086"
             size="0.095 0.328 0.048" rgba="0.34 0.28 0.60 1"/>
       <geom name="trunk_pod" type="box" pos="0 0 0.148"
@@ -51,57 +49,63 @@ Apache-2.0.
             contype="0" conaffinity="0"/>
       <site name="imu" pos="-0.04095 0.04000 0.155" size="0.006"/>
 
-      <!-- Left hip mount: rigid, no x–z slides. -->
       <body name="left_hip_mount" pos="0 0.3411 0.0602">
-        <inertial pos="0 0 -0.16" mass="0.80"
-                  diaginertia="0.0012 0.0012 0.0012"/>
+        <inertial pos="0 0 0" mass="0.15"
+                  diaginertia="0.00012 0.00020 0.00012"/>
         <geom type="box" size="0.027 0.014 0.027" density="0"
               contype="0" conaffinity="0" rgba="0.10 0.65 0.95 1"/>
         <site name="left_hip_origin" size="0.008" rgba="0.10 0.65 0.95 1"/>
 
         <body name="left_upper">
           <joint name="left_hip" type="hinge" axis="0 1 0" range="-0.65 0.65"/>
-          <geom class="link" fromto="0 0 0 0.075 0 -0.174" mass="0.24"
+          <geom class="servo" name="left_hip_motor" mass="0.507"/>
+          <geom class="link" name="left_upper_bar"
+                fromto="0 0 0 0.075 0 -0.174" mass="0.16"
                 rgba="0.95 0.55 0.12 1"/>
           <site name="left_knee" pos="0.075 0 -0.174" size="0.009"
                 rgba="0.95 0.55 0.12 1"/>
 
           <body name="left_lower" pos="0.075 0 -0.174">
             <joint name="left_knee" type="hinge" axis="0 1 0" range="-1.20 1.20"/>
-            <geom class="link" fromto="0 0 0 -0.075 0 -0.174" mass="0.21"
+            <geom class="servo" name="left_knee_motor" mass="0.507"/>
+            <geom class="link" name="left_lower_bar"
+                  fromto="0 0 0 -0.075 0 -0.174" mass="0.16"
                   rgba="0.95 0.55 0.12 1"/>
             <body name="left_wheel" pos="-0.075 0 -0.174">
               <joint name="left_wheel_joint" type="hinge" axis="0 1 0"
-                     damping="0.005"/>
-              <geom class="wheel" quat="0.7071068 0.7071068 0 0" mass="0.2385"/>
+                     damping="0.005" armature="0"/>
+              <geom class="wheel" quat="0.7071068 0.7071068 0 0" mass="3.00"/>
             </body>
           </body>
         </body>
       </body>
 
-      <!-- Right hip mount: rigid, no x–z slides. -->
       <body name="right_hip_mount" pos="0 -0.3411 0.0602">
-        <inertial pos="0 0 -0.16" mass="0.80"
-                  diaginertia="0.0012 0.0012 0.0012"/>
+        <inertial pos="0 0 0" mass="0.15"
+                  diaginertia="0.00012 0.00020 0.00012"/>
         <geom type="box" size="0.027 0.014 0.027" density="0"
               contype="0" conaffinity="0" rgba="0.10 0.65 0.95 1"/>
         <site name="right_hip_origin" size="0.008" rgba="0.10 0.65 0.95 1"/>
 
         <body name="right_upper">
           <joint name="right_hip" type="hinge" axis="0 1 0" range="-0.65 0.65"/>
-          <geom class="link" fromto="0 0 0 0.075 0 -0.174" mass="0.24"
+          <geom class="servo" name="right_hip_motor" mass="0.507"/>
+          <geom class="link" name="right_upper_bar"
+                fromto="0 0 0 0.075 0 -0.174" mass="0.16"
                 rgba="0.95 0.55 0.12 1"/>
           <site name="right_knee" pos="0.075 0 -0.174" size="0.009"
                 rgba="0.95 0.55 0.12 1"/>
 
           <body name="right_lower" pos="0.075 0 -0.174">
             <joint name="right_knee" type="hinge" axis="0 1 0" range="-1.20 1.20"/>
-            <geom class="link" fromto="0 0 0 -0.075 0 -0.174" mass="0.21"
+            <geom class="servo" name="right_knee_motor" mass="0.507"/>
+            <geom class="link" name="right_lower_bar"
+                  fromto="0 0 0 -0.075 0 -0.174" mass="0.16"
                   rgba="0.95 0.55 0.12 1"/>
             <body name="right_wheel" pos="-0.075 0 -0.174">
               <joint name="right_wheel_joint" type="hinge" axis="0 1 0"
-                     damping="0.005"/>
-              <geom class="wheel" quat="0.7071068 0.7071068 0 0" mass="0.2385"/>
+                     damping="0.005" armature="0"/>
+              <geom class="wheel" quat="0.7071068 0.7071068 0 0" mass="3.00"/>
             </body>
           </body>
         </body>
@@ -110,18 +114,18 @@ Apache-2.0.
   </worldbody>
 
   <actuator>
-    <position name="left_hip" joint="left_hip" kp="30" kv="1.5"
+    <position name="left_hip" joint="left_hip" kp="50" kv="2.0"
               ctrlrange="-0.65 0.65" forcerange="-16 16"/>
-    <position name="left_knee" joint="left_knee" kp="30" kv="1.5"
+    <position name="left_knee" joint="left_knee" kp="50" kv="2.0"
               ctrlrange="-1.20 1.20" forcerange="-16 16"/>
     <motor name="left_wheel" joint="left_wheel_joint"
-           ctrlrange="-6 6" forcerange="-6 6"/>
-    <position name="right_hip" joint="right_hip" kp="30" kv="1.5"
+           ctrlrange="-20 20" forcerange="-20 20"/>
+    <position name="right_hip" joint="right_hip" kp="50" kv="2.0"
               ctrlrange="-0.65 0.65" forcerange="-16 16"/>
-    <position name="right_knee" joint="right_knee" kp="30" kv="1.5"
+    <position name="right_knee" joint="right_knee" kp="50" kv="2.0"
               ctrlrange="-1.20 1.20" forcerange="-16 16"/>
     <motor name="right_wheel" joint="right_wheel_joint"
-           ctrlrange="-6 6" forcerange="-6 6"/>
+           ctrlrange="-20 20" forcerange="-20 20"/>
   </actuator>
 
   <sensor>

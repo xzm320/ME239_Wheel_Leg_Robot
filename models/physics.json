@@ -1,0 +1,70 @@
+{
+  "notes": "Catalog-backed masses. Prototype is the ablation; it does not add ballast to match wide_car.",
+  "shared": {
+    "hip_y_m": 0.3411,
+    "stand_z_m": 0.408,
+    "wheel_radius_m": 0.120,
+    "wheel_half_width_m": 0.032,
+    "link_length_m": 0.1895,
+    "link_tube_od_m": 0.024,
+    "link_tube_wall_m": 0.003,
+    "aluminum_density_kg_m3": 2700
+  },
+  "parts": {
+    "trunk_pack": {
+      "mass_kg": 4.20,
+      "contents": "6061 chassis 1.40 + 36V 6Ah pack 2.10 + compute/PDU/harness 0.50 + covers 0.20"
+    },
+    "hip_servo_qdd100": {
+      "mass_kg": 0.507,
+      "peak_torque_nm": 16.0,
+      "indefinite_torque_nm": 3.3,
+      "peak_power_w": 500,
+      "voltage_v": [10, 44],
+      "od_m": 0.100,
+      "thickness_m": 0.044,
+      "source": "mjbots qdd100 beta 3"
+    },
+    "hub_motor_10in": {
+      "mass_kg": 3.00,
+      "rated_power_w": 350,
+      "voltage_v": 36,
+      "peak_torque_nm": 20.0,
+      "od_m": 0.240,
+      "source": "10in 36V 350W hoverboard hub motor + tire, catalog ~2.96–3.50 kg"
+    },
+    "welded_hip_bracket": {
+      "mass_kg": 0.15,
+      "material": "6061-T6",
+      "source": "80x40x20 mm block + fasteners"
+    },
+    "xz_stage": {
+      "mass_kg": 1.80,
+      "travel_x_m": 0.040,
+      "travel_z_m": 0.050,
+      "stiffness_x_n_m": 10000,
+      "stiffness_z_n_m": 22000,
+      "damping_x_n_s_m": 300,
+      "damping_z_n_s_m": 500,
+      "contents": "2x (MGN12H 150mm 0.15 + NEMA17-48 0.37 + SFU1204 0.25 + plate 0.13)",
+      "source": "HIWIN MGN12H + NEMA17 0.45 N·m + 1204 ballscrew, two axes"
+    },
+    "four_bar_link": {
+      "mass_kg": 0.16,
+      "material": "6061-T6 tube OD 24 mm wall 3 mm + 2 rod ends",
+      "length_m": 0.1895
+    },
+    "strut_assembly": {
+      "mass_kg": 1.60,
+      "outer_kg": 0.90,
+      "middle_kg": 0.45,
+      "inner_kg": 0.25,
+      "stroke_m": 0.150,
+      "force_n": 500,
+      "source": "12V 150 mm stroke 500 N industrial linear actuator, catalog 1.60 kg"
+    },
+    "wheel_node_bearing": {
+      "mass_kg": 0.04
+    }
+  }
+}
