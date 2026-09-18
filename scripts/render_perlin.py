@@ -183,7 +183,7 @@ def render_prototype_clip(
                     if target_speed_m_s < 0.02
                     else min(
                         target_speed_m_s,
-                        acceleration_m_s2 * max(0.0, time_s - 0.5),
+                        acceleration_m_s2 * max(0.0, time_s - 0.8),
                     )
                 )
                 pitch = quaternion_pitch(data.qpos[3:7])
@@ -351,20 +351,20 @@ def render_prototype_set() -> list[Path]:
             stem="prototype_pid_stand",
         ),
         dict(
-            target_speed_m_s=0.20,
-            duration_s=16.0,
-            start_x_m=6.0,
-            title="PROTOTYPE  PID  PERLIN  0.20 m/s",
-            stem="prototype_pid_0p20ms",
-            acceleration_m_s2=0.20,
+            target_speed_m_s=0.15,
+            duration_s=18.0,
+            start_x_m=8.5,
+            title="PROTOTYPE  PID  PERLIN  0.15 m/s  LIMIT",
+            stem="prototype_pid_0p15ms",
+            acceleration_m_s2=0.12,
         ),
         dict(
             target_speed_m_s=0.40,
-            duration_s=12.0,
-            start_x_m=6.5,
+            duration_s=8.0,
+            start_x_m=8.0,
             title="PROTOTYPE  PID  PERLIN  0.40 m/s  FAIL",
             stem="prototype_pid_0p40ms_fail",
-            acceleration_m_s2=0.35,
+            acceleration_m_s2=0.12,
         ),
     ]
     return [render_prototype_clip(**clip) for clip in clips]

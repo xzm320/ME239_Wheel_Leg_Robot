@@ -60,25 +60,25 @@ def prototype_balance_gains() -> BalanceGains:
     """
 
     return BalanceGains(
-        pitch_kp=18.0,
-        pitch_kd=3.8,
-        speed_kp=0.18,
-        speed_ki=0.04,
-        pitch_reference_limit_rad=0.14,
-        pitch_reference_rate_rad_s=0.45,
+        pitch_kp=16.0,
+        pitch_kd=4.6,
+        speed_kp=0.16,
+        speed_ki=0.05,
+        pitch_reference_limit_rad=0.12,
+        pitch_reference_rate_rad_s=0.30,
         wheel_torque_limit_nm=1.7,
     )
 
 
 def prototype_heading_gains() -> HeadingGains:
     return HeadingGains(
-        yaw_kp=0.60,
-        yaw_kd=0.18,
-        lateral_kp=3.0,
-        lateral_kd=0.80,
-        roll_kp=2.2,
-        roll_kd=0.40,
-        torque_limit_nm=0.55,
+        yaw_kp=0.85,
+        yaw_kd=0.28,
+        lateral_kp=4.2,
+        lateral_kd=1.10,
+        roll_kp=3.2,
+        roll_kd=0.65,
+        torque_limit_nm=0.70,
     )
 
 

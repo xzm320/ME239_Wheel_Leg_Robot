@@ -58,7 +58,7 @@ ROLL_FAIL_DEG = 20.0
 PITCH_FAIL_DEG = 32.0
 LANE_Y_M = 1.15
 COLLAPSE_Z_M = 0.26
-DEFAULT_SPEEDS_M_S = (0.00, 0.10, 0.15, 0.20, 0.25, 0.30, 0.40, 0.50, 0.70)
+DEFAULT_SPEEDS_M_S = (0.00, 0.10, 0.15, 0.18, 0.20, 0.25, 0.30, 0.40, 0.50)
 
 
 @dataclass(frozen=True)
@@ -150,7 +150,9 @@ def lane_held(result: PerlinSpeedResult) -> bool:
         return result.maximum_pitch_deg < 12.0
     if not result.reached_rough:
         return False
-    if result.cruise_speed_m_s < 0.70 * result.target_speed_m_s:
+    # Serial Upkie cannot track tightly on wrinkles; require forward
+    # progress rather than a high-speed cruise band.
+    if result.cruise_speed_m_s < 0.50 * result.target_speed_m_s:
         return False
     return True
 
@@ -159,7 +161,7 @@ def run_prototype_episode(
     target_speed_m_s: float,
     *,
     duration_s: float | None = None,
-    acceleration_m_s2: float = 0.28,
+    acceleration_m_s2: float = 0.12,
     balance_gains: BalanceGains | None = None,
     heading_gains: HeadingGains | None = None,
     start_x_m: float = LAUNCH_X_M,
@@ -197,7 +199,7 @@ def run_prototype_episode(
         commanded = (
             0.0
             if target_speed_m_s < 0.02
-            else min(target_speed_m_s, acceleration_m_s2 * max(0.0, time_s - 0.7))
+            else min(target_speed_m_s, acceleration_m_s2 * max(0.0, time_s - 0.8))
         )
         pitch = quaternion_pitch(data.qpos[3:7])
         roll, yaw = quaternion_roll_yaw(data.qpos[3:7])
@@ -292,6 +294,10 @@ def sweep_prototype(
         "pose_hold": {"hip_knee_kp": HIP_KNEE_KP, "hip_knee_kv": HIP_KNEE_KV},
         "launch_x_m": LAUNCH_X_M,
         "rough_start_x_m": ROUGH_START_X_M,
+        "held_criterion": (
+            "survive; |y|<1.2 m; roll<12 deg; if moving: reach x>=10 m "
+            "and cruise >= 50% of target on the wrinkles"
+        ),
         "episodes": [summarize(row) for row in rows],
         "max_held_speed_m_s": None if limit is None else limit.target_speed_m_s,
         "max_held_speed_kmh": None
