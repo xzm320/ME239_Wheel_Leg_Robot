@@ -89,6 +89,32 @@ def generate_heightfield() -> tuple[np.ndarray, dict[str, float]]:
     }
 
 
+_HEIGHTS_01: np.ndarray | None = None
+
+
+def terrain_height_m(x_m: float, y_m: float) -> float:
+    """Sample the Perlin strip. Mid-grey (0.5) maps to world z = 0."""
+
+    global _HEIGHTS_01
+    if _HEIGHTS_01 is None:
+        _HEIGHTS_01, _ = generate_heightfield()
+    heights_01 = _HEIGHTS_01
+    rows, cols = heights_01.shape
+    col = np.clip(x_m / LENGTH_M * (cols - 1), 0.0, cols - 1)
+    row = np.clip((WIDTH_M / 2.0 - y_m) / WIDTH_M * (rows - 1), 0.0, rows - 1)
+    r0, c0 = int(row), int(col)
+    r1 = min(r0 + 1, rows - 1)
+    c1 = min(c0 + 1, cols - 1)
+    wr, wc = row - r0, col - c0
+    sample = (
+        heights_01[r0, c0] * (1 - wr) * (1 - wc)
+        + heights_01[r0, c1] * (1 - wr) * wc
+        + heights_01[r1, c0] * wr * (1 - wc)
+        + heights_01[r1, c1] * wr * wc
+    )
+    return float((sample - 0.5) * HEIGHT_SCALE_M)
+
+
 def write_grayscale_png(path: Path, values: np.ndarray) -> None:
     image = np.asarray(np.round(values), dtype=np.uint8)
     height, width = image.shape
