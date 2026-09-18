@@ -36,12 +36,35 @@
 
 **结论：官方串髋串膝 Upkie 用纯 PID，在这条 Perlin 皱面上最快只能稳定到约 0.15 m/s（0.54 km/h）。** 再快，第一道真实 bump 就会把轮端正压力打断。完整数字见 `results/prototype_pid_perlin.json`，视频见 `docs/media/`。
 
+## 第 1 版：wide_car 仅 PID、被动吸扰（本分支）
+
+约束：轮子还是级联 PID；髋铰链钉在名义 0；**关掉伸缩杆位置伺服**，只留关节弹簧和髋座 x–z 滑移去吃 bump。不预瞄地形，不做主动伸缩。
+
+判定「皱面上稳住」：不翻、|y| < 1.2 m、横滚 < 12°、到达 x ≥ 10 m，皱面均速不低于目标的 70%。
+
+| 目标 (m/s) | 目标 (km/h) | 结果 | 皱面均速 (km/h) | 说明 |
+| --- | --- | --- | --- | --- |
+| 0.00 | 0.00 | 站稳（有前爬） | — | 平直段能站住 |
+| 1.00 | 3.60 | 稳住 | 3.78 | 皱面跟踪良好 |
+| 2.00 | 7.20 | 稳住 | 6.70 | |
+| 3.00 | 10.80 | 稳住 | 9.46 | 俯仰偏大（18°） |
+| 3.50 | 12.60 | 稳住 | 10.29 | |
+| **3.70** | **13.32** | **最高稳住** | 10.32 | 横滚 8.3° |
+| 3.80 | 13.68 | 跑完但横滚 14° | 11.46 | 不算稳住 |
+| 4.00 | 14.40 | 俯仰翻车 | 12.17 | |
+| 5.00 | 18.00 | 俯仰翻车 | 13.27 | |
+
+**结论：同一套 PID、腿完全被动时，三倍轮距柔顺机可以在皱面上稳到 3.7 m/s（13.3 km/h），大约是原型机 0.15 m/s 的 25 倍。** 数字见 `results/wide_car_pid_passive_perlin.json`。
+
 ```bash
 uv sync --frozen
 uv run python scripts/generate_perlin.py
 uv run python scripts/prototype_perlin.py
+uv run python scripts/wide_car_perlin.py
 uv run python scripts/render_perlin.py --robot prototype
+uv run python scripts/render_perlin.py --robot wide_car
 uv run python -m mujoco.viewer --mjcf models/prototype/scene.xml
+uv run python -m mujoco.viewer --mjcf models/wide_car/scene.xml
 uv run pytest
 ```
 
@@ -89,12 +112,35 @@ Episodes launch at x = 3.5 m on the flat strip. A moving run is counted as held 
 
 **The stock serial Upkie, PID only, holds about 0.15 m/s (0.54 km/h) on this Perlin strip.** Anything faster loses wheel normal force on the first real bump. Numbers: `results/prototype_pid_perlin.json`. Clips: `docs/media/`.
 
+## Version 1: wide_car PID only, passive absorption (this branch)
+
+Constraint: wheels still run cascaded PID; hip hinges stay at 0; **strut position servos are switched off**, so only the joint springs and the x–z hip slides eat the bumps. No terrain preview, no active length tracking.
+
+A moving run is held if it stays up, |y| < 1.2 m, roll < 12°, reaches x ≥ 10 m, and keeps at least 70% of the commanded speed on the wrinkles.
+
+| Target (m/s) | Target (km/h) | Outcome | Rough cruise (km/h) | Notes |
+| --- | --- | --- | --- | --- |
+| 0.00 | 0.00 | stands (creeps forward) | — | flat-strip balance |
+| 1.00 | 3.60 | held | 3.78 | tracks well |
+| 2.00 | 7.20 | held | 6.70 | |
+| 3.00 | 10.80 | held | 9.46 | pitch peaks at 18° |
+| 3.50 | 12.60 | held | 10.29 | |
+| **3.70** | **13.32** | **max held** | 10.32 | roll 8.3° |
+| 3.80 | 13.68 | finished, roll 14° | 11.46 | not counted as held |
+| 4.00 | 14.40 | pitch-over | 12.17 | |
+| 5.00 | 18.00 | pitch-over | 13.27 | |
+
+**With the same PID and fully passive legs, the 3×-track compliant machine holds 3.7 m/s (13.3 km/h) on the wrinkles — about 25× the 0.15 m/s prototype limit.** Numbers: `results/wide_car_pid_passive_perlin.json`.
+
 ```bash
 uv sync --frozen
 uv run python scripts/generate_perlin.py
 uv run python scripts/prototype_perlin.py
+uv run python scripts/wide_car_perlin.py
 uv run python scripts/render_perlin.py --robot prototype
+uv run python scripts/render_perlin.py --robot wide_car
 uv run python -m mujoco.viewer --mjcf models/prototype/scene.xml
+uv run python -m mujoco.viewer --mjcf models/wide_car/scene.xml
 uv run pytest
 ```
 

@@ -86,41 +86,40 @@ def wide_car_balance_gains() -> BalanceGains:
     """3× four-bar, PID on the wheels only. Hips/struts stay at nominal."""
 
     return BalanceGains(
-        pitch_kp=380.0,
-        pitch_kd=90.0,
-        speed_kp=0.055,
-        speed_ki=0.0,
-        pitch_reference_limit_rad=0.09,
-        pitch_reference_rate_rad_s=0.18,
+        pitch_kp=420.0,
+        pitch_kd=95.0,
+        speed_kp=0.075,
+        speed_ki=0.004,
+        pitch_reference_limit_rad=0.12,
+        pitch_reference_rate_rad_s=0.28,
         wheel_torque_limit_nm=6.0,
     )
 
 
 def wide_car_heading_gains() -> HeadingGains:
     return HeadingGains(
-        yaw_kp=0.55,
-        yaw_kd=0.22,
-        lateral_kp=0.12,
-        lateral_kd=0.08,
-        roll_kp=1.6,
-        roll_kd=0.35,
-        torque_limit_nm=0.32,
+        yaw_kp=0.70,
+        yaw_kd=0.28,
+        lateral_kp=0.22,
+        lateral_kd=0.12,
+        roll_kp=2.2,
+        roll_kd=0.45,
+        torque_limit_nm=0.45,
     )
 
 
 class BalanceSpeedController:
     """Outer speed PI feeding a rate-limited inner pitch PD loop."""
 
-    def __init__(self, timestep: float, gains: BalanceGains) -> None:
+    def __init__(self, timestep: float, gains: BalanceGains, initial_pitch_reference: float = 0.0) -> None:
         self.timestep = timestep
         self.gains = gains
+        self.initial_pitch_reference = initial_pitch_reference
         self.reset()
 
     def reset(self) -> None:
         self.speed_integral = 0.0
-        # Small forward lean offsets the prototype COM, which sits ~6 mm aft
-        # of the wheel contact at the URDF zero pose.
-        self.pitch_reference = 0.02
+        self.pitch_reference = self.initial_pitch_reference
 
     def update(
         self,

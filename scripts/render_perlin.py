@@ -38,6 +38,7 @@ if __package__:
         actuator_ids,
         joint_dof,
     )
+    from scripts.wide_car_perlin import apply_passive_struts
 else:
     from balance_pid import (
         BalanceSpeedController,
@@ -61,6 +62,7 @@ else:
         actuator_ids,
         joint_dof,
     )
+    from wide_car_perlin import apply_passive_struts
 
 FPS = 20
 WIDTH = 960
@@ -161,7 +163,7 @@ def render_prototype_clip(
     left_dof = joint_dof(model, WHEEL_JOINTS[0])
     right_dof = joint_dof(model, WHEEL_JOINTS[1])
     controller = BalanceSpeedController(
-        float(model.opt.timestep), prototype_balance_gains()
+        float(model.opt.timestep), prototype_balance_gains(), initial_pitch_reference=0.02
     )
     heading = prototype_heading_gains()
     camera, scene_option = setup_camera(model, 2.4)
@@ -250,12 +252,13 @@ def render_wide_car_clip(
     start_x_m: float,
     title: str,
     stem: str,
-    acceleration_m_s2: float = 0.8,
+    acceleration_m_s2: float = 1.8,
     rolling_start: bool = False,
 ) -> Path:
     """Wheel PID only; hips and struts stay at the nominal pose."""
 
     model = mujoco.MjModel.from_xml_path(str(WIDE_SCENE))
+    apply_passive_struts(model)
     data = mujoco.MjData(model)
     data.qpos[0] = start_x_m
     data.qpos[2] = WIDE_STAND_HEIGHT_M + terrain_height_m(start_x_m, 0.0)
@@ -370,6 +373,35 @@ def render_prototype_set() -> list[Path]:
     return [render_prototype_clip(**clip) for clip in clips]
 
 
+def render_wide_car_set() -> list[Path]:
+    clips = [
+        dict(
+            target_speed_m_s=0.0,
+            duration_s=5.0,
+            start_x_m=3.5,
+            title="WIDE_CAR  PID  PASSIVE  STAND",
+            stem="wide_car_pid_passive_stand",
+        ),
+        dict(
+            target_speed_m_s=3.7,
+            duration_s=10.0,
+            start_x_m=6.0,
+            title="WIDE_CAR  PID  PASSIVE  3.7 m/s  LIMIT",
+            stem="wide_car_pid_passive_3p7ms",
+            acceleration_m_s2=1.8,
+        ),
+        dict(
+            target_speed_m_s=5.0,
+            duration_s=8.0,
+            start_x_m=6.0,
+            title="WIDE_CAR  PID  PASSIVE  5.0 m/s  FAIL",
+            stem="wide_car_pid_passive_5p0ms_fail",
+            acceleration_m_s2=1.8,
+        ),
+    ]
+    return [render_wide_car_clip(**clip) for clip in clips]
+
+
 def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument(
@@ -378,19 +410,7 @@ def main() -> None:
         default="prototype",
     )
     args = parser.parse_args()
-    if args.robot == "prototype":
-        paths = render_prototype_set()
-    else:
-        paths = [
-            render_wide_car_clip(
-                target_speed_m_s=3.0,
-                duration_s=8.0,
-                start_x_m=8.0,
-                title="WIDE_CAR  PID  PASSIVE  PERLIN",
-                stem="wide_car_pid_passive",
-                rolling_start=False,
-            )
-        ]
+    paths = render_prototype_set() if args.robot == "prototype" else render_wide_car_set()
     for path in paths:
         print(path)
 
