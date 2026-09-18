@@ -52,7 +52,22 @@ ROLL_FAIL_DEG = 18.0
 PITCH_FAIL_DEG = 32.0
 LANE_Y_M = 1.15
 COLLAPSE_Z_M = 0.16
-DEFAULT_SPEEDS_M_S = (0.00, 0.50, 1.00, 1.50, 2.00, 2.50, 3.00, 3.50, 3.70, 4.00)
+DEFAULT_SPEEDS_M_S = (
+    0.00,
+    0.50,
+    1.00,
+    1.50,
+    2.00,
+    2.50,
+    2.60,
+    2.70,
+    2.80,
+    2.90,
+    3.00,
+    3.20,
+    3.50,
+    3.70,
+)
 
 
 @dataclass(frozen=True)
@@ -256,13 +271,22 @@ def sweep_prototype(
     rows = [run_prototype_episode(speed) for speed in speeds_m_s]
     held = [row for row in rows if row.held]
     moving_held = [row for row in held if row.target_speed_m_s >= 0.05]
-    limit = max(moving_held, key=lambda row: row.target_speed_m_s, default=None)
+    isolated = max(moving_held, key=lambda row: row.target_speed_m_s, default=None)
+    contiguous = None
+    for row in rows:
+        if row.target_speed_m_s < 0.05:
+            continue
+        if row.held:
+            contiguous = row
+        else:
+            break
     payload = {
         "robot": "prototype",
         "version": "wide_car-ablation-rigid-2link",
         "controller": (
             "cascaded speed PI + pitch PD on the wheels; hip and knee "
-            "position servos hold 0; no slides, no four-bar, no strut"
+            "position servos hold 0; no slides, no four-bar, no strut. "
+            "Gains matched to wide_car."
         ),
         "terrain": "Unitree AddPerlinHeighField, 48 m x 4 m, relief 0.20 m",
         "gains": asdict(prototype_balance_gains()),
@@ -274,10 +298,16 @@ def sweep_prototype(
             "and cruise >= 70% of target on the wrinkles"
         ),
         "episodes": [summarize(row) for row in rows],
-        "max_held_speed_m_s": None if limit is None else limit.target_speed_m_s,
+        "max_held_speed_m_s": None if contiguous is None else contiguous.target_speed_m_s,
         "max_held_speed_kmh": None
-        if limit is None
-        else round(limit.target_speed_m_s * 3.6, 2),
+        if contiguous is None
+        else round(contiguous.target_speed_m_s * 3.6, 2),
+        "max_isolated_held_speed_m_s": None
+        if isolated is None
+        else isolated.target_speed_m_s,
+        "max_isolated_held_speed_kmh": None
+        if isolated is None
+        else round(isolated.target_speed_m_s * 3.6, 2),
     }
     RESULTS_PATH.parent.mkdir(parents=True, exist_ok=True)
     RESULTS_PATH.write_text(

@@ -34,7 +34,26 @@
 
 ## 原型机 PID（刚性 2 连杆削减）
 
-从 x = 3.5 m 平直段起步。数字见 `results/prototype_pid_perlin.json`，视频见 `docs/media/`。重新扫描后填表。
+同一套 PID、同一底盘。从 x = 3.5 m 平直段起步。上限取**从 0 起连续稳住的最高速度**；更高速度上有些目标会因 bump 相位偶发跑完，不计入上限。
+
+| 目标 (m/s) | 目标 (km/h) | 结果 | 皱面均速 (km/h) | 说明 |
+| --- | --- | --- | --- | --- |
+| 0.00 | 0.00 | 站稳（有前爬） | — | 平直段能站住 |
+| 0.50 | 1.80 | 稳住 | 3.00 | |
+| 1.00 | 3.60 | 稳住 | 4.60 | |
+| 1.50 | 5.40 | 稳住 | 5.89 | |
+| 2.00 | 7.20 | 稳住 | 7.94 | |
+| 2.50 | 9.00 | 稳住 | 9.11 | |
+| 2.60 | 9.36 | 稳住 | 9.46 | 俯仰 27° |
+| **2.70** | **9.72** | **最高连续稳住** | 9.72 | 横滚 9.4°，俯仰 9.9° |
+| 2.80 | 10.08 | 俯仰翻车 | 10.10 | 第一条连续失效 |
+| 2.90 | 10.44 | 跑完但横滚 12.7° | 10.27 | 不算稳住 |
+| 3.00 | 10.80 | 俯仰翻车 | 10.63 | |
+| 3.20 | 11.52 | 偶发稳住 | 11.13 | bump 相位碰巧 |
+| 3.50 | 12.60 | 偶发稳住 | 13.24 | 俯仰 31°，贴着阈值 |
+| 3.70 | 13.32 | 俯仰翻车 | 9.17 | wide_car 的上限在这里翻 |
+
+**结论：去掉柔性髋、四连杆和伸缩杆之后，同一套 PID 只能连续稳到 2.7 m/s（9.72 km/h）。** wide_car 在同样判据下是 3.7 m/s。完整数字见 `results/prototype_pid_perlin.json`，视频见 `docs/media/`。
 
 ## 第 1 版：wide_car 仅 PID、被动吸扰（本分支）
 
@@ -50,7 +69,7 @@
 | 4.00 | 14.40 | 俯仰翻车 | 12.17 | |
 | 5.00 | 18.00 | 俯仰翻车 | 13.27 | |
 
-**结论：同一套 PID、腿完全被动时，三倍轮距柔顺机可以在皱面上稳到 3.7 m/s（13.3 km/h）。** 数字见 `results/wide_car_pid_passive_perlin.json`。
+**结论：同一套 PID、腿完全被动时，三倍轮距柔顺机可以在皱面上稳到 3.7 m/s（13.3 km/h），比刚性 2 连杆原型机的连续上限 2.7 m/s 高约 1 m/s。** 数字见 `results/wide_car_pid_passive_perlin.json`。
 
 ```bash
 uv sync --frozen
@@ -106,7 +125,26 @@ A moving run is held if it stays up, |y| < 1.2 m, roll < 12°, reaches x ≥ 10 
 
 ## Prototype PID (rigid 2-link ablation)
 
-Episodes launch at x = 3.5 m. Numbers: `results/prototype_pid_perlin.json`. Clips: `docs/media/`. Table filled after the re-sweep.
+Same PID, same chassis. Episodes launch at x = 3.5 m. The reported limit is the **highest speed that holds from a contiguous sweep starting at 0**. Faster targets sometimes finish when they hit a lucky bump phase; those are not the limit.
+
+| Target (m/s) | Target (km/h) | Outcome | Rough cruise (km/h) | Notes |
+| --- | --- | --- | --- | --- |
+| 0.00 | 0.00 | stands (creeps forward) | — | flat-strip balance |
+| 0.50 | 1.80 | held | 3.00 | |
+| 1.00 | 3.60 | held | 4.60 | |
+| 1.50 | 5.40 | held | 5.89 | |
+| 2.00 | 7.20 | held | 7.94 | |
+| 2.50 | 9.00 | held | 9.11 | |
+| 2.60 | 9.36 | held | 9.46 | pitch 27° |
+| **2.70** | **9.72** | **max contiguous hold** | 9.72 | roll 9.4°, pitch 9.9° |
+| 2.80 | 10.08 | pitch-over | 10.10 | first contiguous failure |
+| 2.90 | 10.44 | finished, roll 12.7° | 10.27 | not counted as held |
+| 3.00 | 10.80 | pitch-over | 10.63 | |
+| 3.20 | 11.52 | isolated hold | 11.13 | lucky bump phase |
+| 3.50 | 12.60 | isolated hold | 13.24 | pitch 31°, against the cap |
+| 3.70 | 13.32 | pitch-over | 9.17 | this is the wide_car limit |
+
+**Without the compliant hip, four-bar, and telescopic strut, the same PID only holds a contiguous 2.7 m/s (9.72 km/h).** wide_car holds 3.7 m/s on the same criterion. Numbers: `results/prototype_pid_perlin.json`. Clips: `docs/media/`.
 
 ## Version 1: wide_car PID only, passive absorption (this branch)
 
@@ -122,7 +160,7 @@ Episodes launch at x = 3.5 m. Numbers: `results/prototype_pid_perlin.json`. Clip
 | 4.00 | 14.40 | pitch-over | 12.17 | |
 | 5.00 | 18.00 | pitch-over | 13.27 | |
 
-**With the same PID and fully passive legs, the 3×-track compliant machine holds 3.7 m/s (13.3 km/h) on the wrinkles.** Numbers: `results/wide_car_pid_passive_perlin.json`.
+**With the same PID and fully passive legs, the 3×-track compliant machine holds 3.7 m/s (13.3 km/h) on the wrinkles — about 1 m/s above the rigid 2-link prototype's contiguous 2.7 m/s limit.** Numbers: `results/wide_car_pid_passive_perlin.json`.
 
 ```bash
 uv sync --frozen
