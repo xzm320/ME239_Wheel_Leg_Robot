@@ -1,12 +1,12 @@
 [project]
 name = "high-speed-wheel-legged-robot"
 version = "0.1.0"
-description = "MuJoCo research platform for a high-speed wheel-legged robot"
+description = "MuJoCo models for comparing a stock Upkie with a 3x-track compliant four-bar machine on Perlin terrain"
 readme = "README.md"
 requires-python = ">=3.12,<3.13"
 dependencies = [
-    "matplotlib>=3.11.2",
     "mujoco==3.13.0",
+    "numpy>=2.0",
 ]
 
 [dependency-groups]
